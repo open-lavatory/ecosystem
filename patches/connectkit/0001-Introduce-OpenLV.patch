@@ -1,0 +1,289 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Jonatan Holmgren <jonatan@jontes.page>
+Date: Fri, 20 Mar 2026 21:51:00 +0100
+Subject: [PATCH] Introduce OpenLV
+
+---
+ packages/connectkit/package.json              |  1 +
+ .../components/Common/ConnectorList/index.tsx | 27 ++++++++++++-------
+ .../ConnectWithInjector/index.tsx             | 11 ++++++--
+ packages/connectkit/src/defaultConfig.ts      | 11 +++++++-
+ packages/connectkit/src/defaultConnectors.ts  |  9 ++++++-
+ .../connectkit/src/hooks/useConnectors.ts     |  3 +++
+ packages/connectkit/src/utils/index.ts        |  3 +++
+ .../connectkit/src/wallets/useWallets.tsx     |  9 ++++---
+ .../connectkit/src/wallets/walletConfigs.tsx  | 12 ++++++---
+ 9 files changed, 66 insertions(+), 20 deletions(-)
+
+diff --git a/packages/connectkit/package.json b/packages/connectkit/package.json
+index 1d784e6..12937f7 100644
+--- a/packages/connectkit/package.json
++++ b/packages/connectkit/package.json
+@@ -41,6 +41,7 @@
+   ],
+   "dependencies": {
+     "@aave/account": "^0.2.0",
++    "@openlv/connector": "0.2.0",
+     "buffer": "^6.0.3",
+     "detect-browser": "^5.3.0",
+     "framer-motion": "^6.3.11",
+diff --git a/packages/connectkit/src/components/Common/ConnectorList/index.tsx b/packages/connectkit/src/components/Common/ConnectorList/index.tsx
+index 72abbda..321c658 100644
+--- a/packages/connectkit/src/components/Common/ConnectorList/index.tsx
++++ b/packages/connectkit/src/components/Common/ConnectorList/index.tsx
+@@ -18,6 +18,7 @@ import { WalletProps, useWallets } from '../../../wallets/useWallets';
+ import {
+   detectBrowser,
+   isCoinbaseWalletConnector,
++  isOpenLVConnector,
+   isPortoConnector,
+   isWalletConnectConnector,
+ } from '../../../utils';
+@@ -126,17 +127,23 @@ const ConnectorItem = ({
+       onClick={
+         deeplink
+           ? undefined
+-          : () => {
+-              if (redirectToMoreWallets) {
+-                context.setRoute(routes.MOBILECONNECTORS);
+-              } else {
+-                if (shouldConnectImmediately) {
+-                  connect({ connector: wallet?.connector });
++              : () => {
++                  if (redirectToMoreWallets) {
++                    context.setRoute(routes.MOBILECONNECTORS);
++                  } else {
++                    if (shouldConnectImmediately) {
++                      connect({ connector: wallet?.connector });
++                    }
++
++                    if (isOpenLVConnector(wallet.id)) {
++                      connect({ connector: wallet?.connector });
++                      context.setOpen(false);
++                    } else {
++                      context.setRoute(routes.CONNECT);
++                      context.setConnector({ id: wallet.id });
++                    }
++                  }
+                 }
+-                context.setRoute(routes.CONNECT);
+-                context.setConnector({ id: wallet.id });
+-              }
+-            }
+       }
+     >
+       <ConnectorIcon
+diff --git a/packages/connectkit/src/components/ConnectModal/ConnectWithInjector/index.tsx b/packages/connectkit/src/components/ConnectModal/ConnectWithInjector/index.tsx
+index a430539..6474c13 100644
+--- a/packages/connectkit/src/components/ConnectModal/ConnectWithInjector/index.tsx
++++ b/packages/connectkit/src/components/ConnectModal/ConnectWithInjector/index.tsx
+@@ -26,7 +26,11 @@ import SquircleSpinner from './SquircleSpinner';
+ import { RetryIconCircle } from '../../../assets/icons';
+ import BrowserIcon from '../../Common/BrowserIcon';
+ import { AlertIcon, TickIcon } from '../../../assets/icons';
+-import { detectBrowser, isWalletConnectConnector } from '../../../utils';
++import {
++  detectBrowser,
++  isWalletConnectConnector,
++  isOpenLVConnector,
++} from '../../../utils';
+ import useLocales from '../../../hooks/useLocales';
+ import { useConnect } from '../../../hooks/useConnect';
+ import { useContext } from '../../ConnectKit';
+@@ -125,7 +129,7 @@ const ConnectWithInjector: React.FC<{
+     },
+   });
+ 
+-  const { triggerResize, connector: c } = useContext();
++  const { triggerResize, connector: c, setOpen } = useContext();
+   const id = c.id;
+   const wallet = useWallet(id);
+ 
+@@ -172,6 +176,9 @@ const ConnectWithInjector: React.FC<{
+ 
+   const runConnect = async () => {
+     if (wallet?.isInstalled && wallet?.connector) {
++      if (isOpenLVConnector(wallet.connector.id)) {
++        setOpen(false);
++      }
+       connect({ connector: wallet?.connector });
+     } else {
+       setStatus(states.UNAVAILABLE);
+diff --git a/packages/connectkit/src/defaultConfig.ts b/packages/connectkit/src/defaultConfig.ts
+index 6555236..5d69e4d 100644
+--- a/packages/connectkit/src/defaultConfig.ts
++++ b/packages/connectkit/src/defaultConfig.ts
+@@ -3,6 +3,7 @@ import { type CreateConfigParameters } from '@wagmi/core';
+ import { mainnet, polygon, optimism, arbitrum } from 'wagmi/chains';
+ import { CoinbaseWalletParameters } from 'wagmi/connectors';
+ import { EthereumProviderOptions as AaveAccountOptions } from '@aave/account';
++import { type OpenLVConnectorParameters } from '@openlv/connector';
+ 
+ import defaultConnectors from './defaultConnectors';
+ 
+@@ -25,7 +26,10 @@ type DefaultConfigProps = {
+   // Aave Account options
+   enableAaveAccount?: boolean;
+   aaveAccountOptions?: AaveAccountOptions;
+-} & Partial<CreateConfigParameters>;
++} & (
++  | { enableOpenLV?: true; openlvOptions?: OpenLVConnectorParameters }
++  | { enableOpenLV: false; openlvOptions?: never }
++) & Partial<CreateConfigParameters>;
+ 
+ const defaultConfig = ({
+   appName = 'ConnectKit',
+@@ -38,6 +42,8 @@ const defaultConfig = ({
+   client,
+   enableAaveAccount = true,
+   aaveAccountOptions,
++  enableOpenLV,
++  openlvOptions,
+   ...props
+ }: DefaultConfigProps): CreateConfigParameters => {
+   globalAppName = appName;
+@@ -61,6 +67,9 @@ const defaultConfig = ({
+       coinbaseWalletPreference,
+       enableAaveAccount,
+       aaveAccountOptions,
++      ...(enableOpenLV === false
++        ? { enableOpenLV: false as const }
++        : { enableOpenLV: true as const, openlvOptions }),
+     });
+ 
+   const config: CreateConfigParameters<any, any> = {
+diff --git a/packages/connectkit/src/defaultConnectors.ts b/packages/connectkit/src/defaultConnectors.ts
+index 2728b92..648c4f9 100644
+--- a/packages/connectkit/src/defaultConnectors.ts
++++ b/packages/connectkit/src/defaultConnectors.ts
+@@ -6,6 +6,7 @@ import {
+   CoinbaseWalletParameters,
+   safe,
+ } from '@wagmi/connectors';
++import { openlv, type OpenLVConnectorParameters } from '@openlv/connector';
+ 
+ import {
+   EthereumProviderOptions as AaveAccountOptions,
+@@ -23,7 +24,10 @@ type DefaultConnectorsProps = {
+   coinbaseWalletPreference?: CoinbaseWalletParameters<'4'>['preference'];
+   enableAaveAccount?: boolean;
+   aaveAccountOptions?: AaveAccountOptions;
+-};
++} & (
++  | { enableOpenLV?: true; openlvOptions?: OpenLVConnectorParameters }
++  | { enableOpenLV: false; openlvOptions?: never }
++);
+ 
+ const defaultConnectors = ({
+   app,
+@@ -31,6 +35,8 @@ const defaultConnectors = ({
+   coinbaseWalletPreference,
+   enableAaveAccount,
+   aaveAccountOptions,
++  enableOpenLV,
++  openlvOptions,
+ }: DefaultConnectorsProps): CreateConnectorFn[] => {
+   const hasAllAppData = app.name && app.icon && app.description && app.url;
+   const shouldUseSafeConnector =
+@@ -50,6 +56,7 @@ const defaultConnectors = ({
+   }
+ 
+   // Add the rest of the connectors
++  if (enableOpenLV) connectors.push(openlv(openlvOptions));
+   connectors.push(
+     injected({ target: 'metaMask' }),
+     coinbaseWallet({
+diff --git a/packages/connectkit/src/hooks/useConnectors.ts b/packages/connectkit/src/hooks/useConnectors.ts
+index a88b1a2..4c2427a 100644
+--- a/packages/connectkit/src/hooks/useConnectors.ts
++++ b/packages/connectkit/src/hooks/useConnectors.ts
+@@ -47,6 +47,9 @@ export function useWalletConnectConnector() {
+   */
+   return useConnector('walletConnect');
+ }
++export function useOpenLVConnector() {
++  return useConnector('openLv');
++}
+ export function useCoinbaseWalletConnector() {
+   /*
+   options: {
+diff --git a/packages/connectkit/src/utils/index.ts b/packages/connectkit/src/utils/index.ts
+index 159a9a1..2ab1ade 100644
+--- a/packages/connectkit/src/utils/index.ts
++++ b/packages/connectkit/src/utils/index.ts
+@@ -80,6 +80,9 @@ function flattenChildren(children: React.ReactNode): ReactChildArray {
+ export const isWalletConnectConnector = (connectorId?: string) =>
+   connectorId === 'walletConnect';
+ 
++export const isOpenLVConnector = (connectorId?: string) =>
++  connectorId === 'openLv';
++
+ export const isAaveAccountConnector = (connectorId?: string) =>
+   connectorId === 'aaveAccountProvider';
+ 
+diff --git a/packages/connectkit/src/wallets/useWallets.tsx b/packages/connectkit/src/wallets/useWallets.tsx
+index 734f743..af85990 100644
+--- a/packages/connectkit/src/wallets/useWallets.tsx
++++ b/packages/connectkit/src/wallets/useWallets.tsx
+@@ -3,7 +3,7 @@ import { Connector } from 'wagmi';
+ import { useConnectors } from '../hooks/useConnectors';
+ import { walletConfigs, WalletConfigProps } from './walletConfigs';
+ import { useContext } from '../components/ConnectKit';
+-import { isCoinbaseWalletConnector, isInjectedConnector } from '../utils';
++import { isOpenLVConnector, isCoinbaseWalletConnector, isInjectedConnector } from '../utils';
+ 
+ export type WalletProps = {
+   id: string;
+@@ -48,7 +48,8 @@ export const useWallets = (): WalletProps[] => {
+       isInstalled:
+         connector.type === 'mock' ||
+         (connector.type === 'injected' && connector.id !== 'metaMask') ||
+-        isCoinbaseWalletConnector(connector.id), // always run coinbase wallet SDK
++        isCoinbaseWalletConnector(connector.id) || // always run coinbase wallet SDK
++        isOpenLVConnector(connector.id),
+     };
+ 
+     if (walletId) {
+@@ -117,8 +118,10 @@ export const useWallets = (): WalletProps[] => {
+         if (!AisInstalled && BisInstalled) return 1;
+         return 0;
+       })
+-      // move walletConnect to the end
++      // move walletConnect and openLv to the end
+       .sort((a, b) => {
++        if (a.id === 'openLv') return 1;
++        if (b.id === 'openLv') return -1;
+         if (a.id === 'walletConnect') return 1;
+         if (b.id === 'walletConnect') return -1;
+         return 0;
+diff --git a/packages/connectkit/src/wallets/walletConfigs.tsx b/packages/connectkit/src/wallets/walletConfigs.tsx
+index 534bbca..5ba2738 100644
+--- a/packages/connectkit/src/wallets/walletConfigs.tsx
++++ b/packages/connectkit/src/wallets/walletConfigs.tsx
+@@ -350,6 +350,12 @@ export const walletConfigs: {
+     },
+     shouldDeeplinkDesktop: true,
+   },
++  'company.v3x.openlv, openLv': {
++    name: 'Other Wallets',
++    shortName: 'Other',
++    icon: <Logos.OtherWallets />,
++    iconShape: 'square',
++  },
+   zerion: {
+     name: 'Zerion',
+     icon: <Logos.Zerion />,
+@@ -409,10 +415,10 @@ export const walletConfigs: {
+     },
+   },
+   walletConnect: {
+-    name: 'Other Wallets',
+-    shortName: 'Other',
++    name: 'WalletConnect',
++    shortName: 'WalletConnect',
+     icon: <Logos.WalletConnect background />,
+-    iconConnector: <Logos.OtherWallets />,
++    iconConnector: <Logos.WalletConnect />,
+     iconShape: 'square',
+     getWalletConnectDeeplink: (uri: string) => uri,
+   },

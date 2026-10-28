@@ -1,0 +1,1919 @@
+From 3acf61f3417f95f89d04350245af6c49808775e0 Mon Sep 17 00:00:00 2001
+From: Luc <luc@lucemans.nl>
+Date: Thu, 29 Oct 2026 17:10:12 +0100
+Subject: [PATCH] feat(web): structure the openlv widget like the WalletConnect
+ feature
+
+- Move the widget into a lazy loaded feature behind the NATIVE_OPENLV flag,
+  with the same folders as `features/walletconnect`.
+- Treat NATIVE_OPENLV as on in useChains, so the patched app shows the widget
+  without a gateway flag. A feature flag override can still turn it off.
+- Put the header icon next to the WalletConnect one through an `openLVSlot`
+  in HeaderNavigation. It shows on phone widths too.
+- Use the same popup parts: connection URL input, session list with
+  Disconnect, hints, error message, chain switch modal.
+- Send every dApp request through useSafeWalletProvider, like WalletConnect.
+  Fixed texts for the EIP-1193 codes stay, and method not found is 4200.
+- Let useSafeWalletProvider take the popup and chain switch stores of the
+  caller, with the WalletConnect ones as the default, so a chain switch from
+  openlv opens the openlv popup and always gets an answer.
+- Add `openlv` analytics events next to the WalletConnect ones.
+---
+ .../images/common/openlv.svg}                 |   0
+ .../common/Header/Topbar/index.test.tsx       |   7 +
+ .../components/common/Header/Topbar/index.tsx |   8 +-
+ apps/web/src/features/openlv/OpenLV.tsx       |  22 ---
+ .../src/features/openlv/OpenLVWidgetUI.tsx    | 127 ------------------
+ .../OpenLVChainSwitchModal/index.tsx          |  87 ++++++++++++
+ .../components/OpenLVConnectionForm/index.tsx |  82 +++++++++++
+ .../openlv/components/OpenLVContext/index.tsx | 104 ++++++++++++++
+ .../components/OpenLVErrorMessage/index.tsx   |  23 ++++
+ .../OpenLVHeaderWidget/OpenLVIcon.tsx         |  54 ++++++++
+ .../components/OpenLVHeaderWidget/index.tsx   |  37 +++++
+ .../openlv/components/OpenLVHints/index.tsx   | 103 ++++++++++++++
+ .../openlv/components/OpenLVInput/index.tsx   | 125 +++++++++++++++++
+ .../components/OpenLVLogoHeader/index.tsx     |  27 ++++
+ .../components/OpenLVSessionList/index.tsx    |  87 ++++++++++++
+ .../components/OpenLVSessionManager/index.tsx |  57 ++++++++
+ .../openlv/components/OpenLVUi/index.tsx      |  50 +++++++
+ apps/web/src/features/openlv/constants.ts     |  25 ++++
+ apps/web/src/features/openlv/contract.ts      |   8 ++
+ apps/web/src/features/openlv/feature.ts       |  10 ++
+ .../openlv/hooks/useOpenLVSearchParamUri.ts   |  28 ++++
+ .../src/features/openlv/hooks/useOpenLVUri.ts |  15 +++
+ apps/web/src/features/openlv/index.ts         |  10 ++
+ .../features/openlv/services/OpenLVWallet.ts  | 117 ++++++++++++++++
+ .../openlv/services/openLVInstance.ts         |   5 +
+ .../src/features/openlv/services/tracking.ts  |  17 +++
+ .../web/src/features/openlv/services/utils.ts |  29 ++++
+ .../openlv/store/openLVChainSwitchStore.ts    |   4 +
+ .../features/openlv/store/openLVPopupStore.ts |   3 +
+ .../web/src/features/openlv/styles.module.css |  60 ---------
+ apps/web/src/features/openlv/types.ts         |  30 +++++
+ .../HeaderNavigation/HeaderNavigation.tsx     |   4 +
+ apps/web/src/hooks/useChains.ts               |  11 +-
+ .../src/services/analytics/events/openlv.ts   |  45 +++++++
+ .../useSafeWalletProvider.tsx                 |  54 ++++++--
+ 35 files changed, 1247 insertions(+), 228 deletions(-)
+ rename apps/web/{src/features/openlv/OpenLVIcon.svg => public/images/common/openlv.svg} (100%)
+ delete mode 100644 apps/web/src/features/openlv/OpenLV.tsx
+ delete mode 100644 apps/web/src/features/openlv/OpenLVWidgetUI.tsx
+ create mode 100644 apps/web/src/features/openlv/components/OpenLVChainSwitchModal/index.tsx
+ create mode 100644 apps/web/src/features/openlv/components/OpenLVConnectionForm/index.tsx
+ create mode 100644 apps/web/src/features/openlv/components/OpenLVContext/index.tsx
+ create mode 100644 apps/web/src/features/openlv/components/OpenLVErrorMessage/index.tsx
+ create mode 100644 apps/web/src/features/openlv/components/OpenLVHeaderWidget/OpenLVIcon.tsx
+ create mode 100644 apps/web/src/features/openlv/components/OpenLVHeaderWidget/index.tsx
+ create mode 100644 apps/web/src/features/openlv/components/OpenLVHints/index.tsx
+ create mode 100644 apps/web/src/features/openlv/components/OpenLVInput/index.tsx
+ create mode 100644 apps/web/src/features/openlv/components/OpenLVLogoHeader/index.tsx
+ create mode 100644 apps/web/src/features/openlv/components/OpenLVSessionList/index.tsx
+ create mode 100644 apps/web/src/features/openlv/components/OpenLVSessionManager/index.tsx
+ create mode 100644 apps/web/src/features/openlv/components/OpenLVUi/index.tsx
+ create mode 100644 apps/web/src/features/openlv/constants.ts
+ create mode 100644 apps/web/src/features/openlv/contract.ts
+ create mode 100644 apps/web/src/features/openlv/feature.ts
+ create mode 100644 apps/web/src/features/openlv/hooks/useOpenLVSearchParamUri.ts
+ create mode 100644 apps/web/src/features/openlv/hooks/useOpenLVUri.ts
+ create mode 100644 apps/web/src/features/openlv/index.ts
+ create mode 100644 apps/web/src/features/openlv/services/OpenLVWallet.ts
+ create mode 100644 apps/web/src/features/openlv/services/openLVInstance.ts
+ create mode 100644 apps/web/src/features/openlv/services/tracking.ts
+ create mode 100644 apps/web/src/features/openlv/services/utils.ts
+ create mode 100644 apps/web/src/features/openlv/store/openLVChainSwitchStore.ts
+ create mode 100644 apps/web/src/features/openlv/store/openLVPopupStore.ts
+ delete mode 100644 apps/web/src/features/openlv/styles.module.css
+ create mode 100644 apps/web/src/features/openlv/types.ts
+ create mode 100644 apps/web/src/services/analytics/events/openlv.ts
+
+diff --git a/apps/web/src/features/openlv/OpenLVIcon.svg b/apps/web/public/images/common/openlv.svg
+similarity index 100%
+rename from apps/web/src/features/openlv/OpenLVIcon.svg
+rename to apps/web/public/images/common/openlv.svg
+diff --git a/apps/web/src/components/common/Header/Topbar/index.test.tsx b/apps/web/src/components/common/Header/Topbar/index.test.tsx
+index ae78e16ff..d8b03c0fa 100644
+--- a/apps/web/src/components/common/Header/Topbar/index.test.tsx
++++ b/apps/web/src/components/common/Header/Topbar/index.test.tsx
+@@ -46,6 +46,10 @@ jest.mock('@/features/walletconnect', () => ({
+   WalletConnectFeature: { name: 'walletconnect' },
+ }))
+ 
++jest.mock('@/features/openlv', () => ({
++  OpenLVFeature: { name: 'openlv' },
++}))
++
+ jest.mock('@/features/batching', () => ({
+   useDraftBatch: () => [],
+ }))
+@@ -152,6 +156,7 @@ describe('Topbar', () => {
+       GlobalSearchModal: () => null,
+       GlobalSearchInput: () => null,
+       WalletConnectWidget: () => null,
++      OpenLVWidget: () => null,
+     })
+   })
+ 
+@@ -250,6 +255,7 @@ describe('Topbar', () => {
+         GlobalSearchModal: () => null,
+         GlobalSearchInput: () => <div data-testid="global-search-input" />,
+         WalletConnectWidget: () => null,
++        OpenLVWidget: () => null,
+       })
+       const txModalValue: TxModalContextType = {
+         txFlow: <div data-testid="mock-tx-flow" />,
+@@ -521,6 +527,7 @@ describe('Topbar', () => {
+         GlobalSearchModal: () => null,
+         GlobalSearchInput: () => null,
+         WalletConnectWidget: () => null,
++        OpenLVWidget: () => null,
+       })
+     })
+ 
+diff --git a/apps/web/src/components/common/Header/Topbar/index.tsx b/apps/web/src/components/common/Header/Topbar/index.tsx
+index 8768c4cbc..44b1d61fa 100644
+--- a/apps/web/src/components/common/Header/Topbar/index.tsx
++++ b/apps/web/src/components/common/Header/Topbar/index.tsx
+@@ -9,7 +9,7 @@ import { useLoadFeature } from '@/features/__core__'
+ import { WalletFeature, useWalletPopover } from '@/features/wallet'
+ import { GlobalSearchFeature } from '@/features/global-search'
+ import { WalletConnectFeature } from '@/features/walletconnect'
+-import { OpenLVHeaderWidget } from '@/features/openlv/OpenLV'
++import { OpenLVFeature } from '@/features/openlv'
+ import { useDraftBatch } from '@/features/batching'
+ import { useIsBelowMd } from '@/hooks/useMediaQuery'
+ import { useAppDispatch, useAppSelector } from '@/store'
+@@ -57,6 +57,7 @@ const Topbar = ({ onMenuToggle, onBatchToggle }: TopbarProps): ReactElement => {
+   const { WalletPopover } = useLoadFeature(WalletFeature)
+   const { GlobalSearchModal, GlobalSearchInput } = useLoadFeature(GlobalSearchFeature)
+   const { WalletConnectWidget } = useLoadFeature(WalletConnectFeature)
++  const { OpenLVWidget } = useLoadFeature(OpenLVFeature)
+   const notificationsRef = useRef<NotificationsPopoverRef>(null)
+   const notifications = useAppSelector(selectCenterNotifications)
+   const spaceId = useCurrentSpaceId()
+@@ -144,15 +145,12 @@ const Topbar = ({ onMenuToggle, onBatchToggle }: TopbarProps): ReactElement => {
+             onNotificationsClick={(e) => notificationsRef.current?.handleClick(e)}
+             onWalletClick={handleWalletClick}
+             walletConnectSlot={<WalletConnectWidget />}
++            openLVSlot={<OpenLVWidget />}
+             showBatch={!isSpaceRoute && showBatchButton}
+             batchCount={draftBatch.length}
+             onBatchClick={() => onBatchToggle?.((open) => !open)}
+           />
+ 
+-          <div className="hidden sm:block">
+-            <OpenLVHeaderWidget />
+-          </div>
+-
+           <HeaderAccountInfo />
+         </div>
+       </header>
+diff --git a/apps/web/src/features/openlv/OpenLV.tsx b/apps/web/src/features/openlv/OpenLV.tsx
+deleted file mode 100644
+index 146cfb57a..000000000
+--- a/apps/web/src/features/openlv/OpenLV.tsx
++++ /dev/null
+@@ -1,22 +0,0 @@
+-import Popup from '@safe-global/views/components/common/Popup'
+-import { useRef, useState } from 'react'
+-import OpenLVIcon from './OpenLVIcon.svg'
+-import { TryItOut } from './OpenLVWidgetUI'
+-
+-export const OpenLVHeaderWidget = () => {
+-  const iconRef = useRef<HTMLDivElement>(null)
+-
+-  const [isOpen, setOpen] = useState(false)
+-
+-  return (
+-    <>
+-      <div style={{ padding: '0 16px', cursor: 'pointer' }} ref={iconRef}>
+-        <OpenLVIcon height={24} width={24} onClick={() => setOpen(!isOpen)} />
+-      </div>
+-
+-      <Popup keepMounted anchorEl={iconRef.current} onClose={() => setOpen(false)} open={isOpen} transitionDuration={0}>
+-        <TryItOut />
+-      </Popup>
+-    </>
+-  )
+-}
+diff --git a/apps/web/src/features/openlv/OpenLVWidgetUI.tsx b/apps/web/src/features/openlv/OpenLVWidgetUI.tsx
+deleted file mode 100644
+index bf9685855..000000000
+--- a/apps/web/src/features/openlv/OpenLVWidgetUI.tsx
++++ /dev/null
+@@ -1,127 +0,0 @@
+-import { connectSession, type Session } from '@openlv/session'
+-import { webrtc } from '@openlv/transport/webrtc'
+-import { useState } from 'react'
+-import type { Address } from 'viem'
+-import styles from './styles.module.css'
+-import useSafeInfo from '@/hooks/useSafeInfo'
+-import useSafeWalletProvider from '@/services/safe-wallet-provider/useSafeWalletProvider'
+-
+-const trimAddress = (address: Address | undefined | null) => {
+-  if (!(typeof address === 'string')) return address
+-
+-  return `${address.slice(0, 5)}...${address.slice(-4)}`
+-}
+-
+-let session: Session | undefined = undefined
+-
+-const SESSION_ERRORS: Record<number, string> = {
+-  4001: 'User Rejected Request',
+-  4100: 'Unauthorized',
+-  4200: 'Unsupported Method',
+-  4900: 'Disconnected',
+-  4901: 'Chain Disconnected',
+-}
+-
+-const toSessionResponse = (response: { result: unknown } | { error: { code: number } }) => {
+-  if (!('error' in response)) return { result: response.result }
+-
+-  const message = SESSION_ERRORS[response.error.code]
+-
+-  return { error: message ? { code: response.error.code, message } : { code: -32603, message: 'Internal error' } }
+-}
+-
+-const ConnectComponent = () => {
+-  const [url, setUrl] = useState<string | undefined>(undefined)
+-
+-  const provider = useSafeWalletProvider()
+-
+-  if (!provider) return <div>Waiting for Safe provider</div>
+-
+-  return (
+-    <>
+-      <div>You can connect to a dApp by entering its connection URL and hitting connect.</div>
+-      <div className={styles.connectionUI}>
+-        <input
+-          type="text"
+-          value={url}
+-          onChange={(e) => setUrl(e.target.value)}
+-          placeholder="openlv://..."
+-          className={styles.connectionInput}
+-        />
+-
+-        <button
+-          className={`${styles.button} ${styles.connect}`}
+-          type="button"
+-          onClick={async () => {
+-            if (!url) return
+-
+-            console.log('connecting to ', url)
+-
+-            try {
+-              session = await connectSession(
+-                url,
+-                async (message) => {
+-                  console.log('received message', message)
+-                  const { method, params } = message as { method: string; params: string[] }
+-
+-                  console.log('method', method)
+-                  console.log('params', params)
+-
+-                  const response = await provider.request(
+-                    Number.parseInt(Math.random().toString(36).slice(2), 10), // request ID
+-                    { method, params },
+-                    {
+-                      url: 'openlv-app',
+-                      name: 'OpenLV',
+-                      description: 'OpenLV Integration',
+-                      iconUrl: '',
+-                    },
+-                  )
+-                  console.log('response', response)
+-                  return toSessionResponse(response)
+-                },
+-                [webrtc()],
+-              )
+-              console.log('session', session)
+-
+-              await session.connect()
+-              console.log('session connected', session)
+-            } catch (error) {
+-              console.error('failed to connect', error)
+-            }
+-          }}
+-        >
+-          Connect
+-        </button>
+-      </div>
+-    </>
+-  )
+-}
+-
+-const Connected = () => {
+-  const { safeLoading, safeLoaded, safeAddress } = useSafeInfo()
+-
+-  if (safeLoading) return <div>Connecting to Safe</div>
+-
+-  if (!safeLoaded) return <div>Connect to a wallet to start</div>
+-
+-  return (
+-    <div className={styles.connected}>
+-      <div className={styles.wallet}>
+-        <div>Connected to {trimAddress(safeAddress as Address)}</div>
+-      </div>
+-
+-      <ConnectComponent />
+-    </div>
+-  )
+-}
+-
+-export const Outter = () => {
+-  return <Connected />
+-}
+-
+-export const TryItOut = () => {
+-  const inBrowser = typeof window !== 'undefined'
+-
+-  return <div suppressHydrationWarning>{inBrowser && <Outter />}</div>
+-}
+diff --git a/apps/web/src/features/openlv/components/OpenLVChainSwitchModal/index.tsx b/apps/web/src/features/openlv/components/OpenLVChainSwitchModal/index.tsx
+new file mode 100644
+index 000000000..419a746d4
+--- /dev/null
++++ b/apps/web/src/features/openlv/components/OpenLVChainSwitchModal/index.tsx
+@@ -0,0 +1,87 @@
++import type { Chain } from '@safe-global/store/gateway/AUTO_GENERATED/chains'
++import { Avatar, AvatarImage } from '@safe-global/views/components/ui/avatar'
++import { Button } from '@safe-global/views/components/ui/button'
++import { Typography } from '@safe-global/views/components/ui/typography'
++import ChainIndicator from '@/components/common/ChainIndicator'
++import type { AppInfo } from '@/services/safe-wallet-provider'
++import { useLoadFeature } from '@/features/__core__'
++import { type SafeItem } from '@/hooks/safes'
++import { MyAccountsFeature, useSafeItemData } from '@/features/myAccounts'
++
++type OpenLVChainSwitchModalProps = {
++  appInfo: AppInfo
++  chain: Chain
++  safes: SafeItem[]
++  onSelectSafe: (safe: SafeItem) => Promise<void>
++  onCancel: () => void
++}
++
++function OpenLVSafeItem({ safeItem, onSelect }: { safeItem: SafeItem; onSelect: () => void }) {
++  const { AccountItemButton, AccountItemIcon, AccountItemInfo, AccountItemBalance } = useLoadFeature(MyAccountsFeature)
++  const { name, safeOverview, threshold, owners, undeployedSafe, elementRef } = useSafeItemData(safeItem)
++
++  return (
++    <AccountItemButton onClick={onSelect} elementRef={elementRef}>
++      <AccountItemIcon
++        address={safeItem.address}
++        chainId={safeItem.chainId}
++        threshold={threshold}
++        owners={owners.length}
++      />
++      <AccountItemInfo address={safeItem.address} chainId={safeItem.chainId} name={name} />
++      <AccountItemBalance fiatTotal={safeOverview?.fiatTotal} isLoading={!safeOverview && !undeployedSafe} />
++    </AccountItemButton>
++  )
++}
++
++const OpenLVChainSwitchModal = ({ appInfo, chain, safes, onSelectSafe, onCancel }: OpenLVChainSwitchModalProps) => {
++  const hasSafes = safes.length > 0
++
++  return (
++    <div className="flex min-w-auto flex-col gap-6 sm:min-w-[390px]">
++      <div className="flex flex-row items-center gap-4">
++        {appInfo.iconUrl ? (
++          <Avatar className="size-12">
++            <AvatarImage src={appInfo.iconUrl} alt={appInfo.name} />
++          </Avatar>
++        ) : null}
++        <div>
++          <Typography variant="h4">{appInfo.name}</Typography>
++          <div className="flex flex-row items-center gap-2">
++            <Typography variant="paragraph-small">wants to switch to</Typography>
++            <ChainIndicator chainId={chain.chainId} onlyLogo />
++            <Typography variant="paragraph-small-bold">{chain.chainName}</Typography>
++          </div>
++        </div>
++      </div>
++
++      <Typography variant="paragraph-small" className="text-muted-foreground">
++        {hasSafes
++          ? `Select one of your Safes on ${chain.chainName} to continue.`
++          : `Connected dapp wants to switch to chain ${chain.chainName} but you don't have Safe accounts deployed on that chain.`}
++      </Typography>
++
++      {hasSafes ? (
++        <div className="max-h-[440px] overflow-y-auto">
++          {safes.map((safe) => (
++            <OpenLVSafeItem
++              key={`${safe.chainId}-${safe.address}`}
++              safeItem={safe}
++              onSelect={() => onSelectSafe(safe)}
++            />
++          ))}
++        </div>
++      ) : (
++        <div className="rounded-lg border border-[var(--color-border-light)] p-4">
++          <Typography variant="paragraph-small">You can load or create a Safe on this network to continue.</Typography>
++        </div>
++      )}
++
++      <Button variant="outline" onClick={onCancel} className="self-start">
++        Cancel
++      </Button>
++    </div>
++  )
++}
++
++export default OpenLVChainSwitchModal
+diff --git a/apps/web/src/features/openlv/components/OpenLVConnectionForm/index.tsx b/apps/web/src/features/openlv/components/OpenLVConnectionForm/index.tsx
+new file mode 100644
+index 000000000..d1b97a4ca
+--- /dev/null
++++ b/apps/web/src/features/openlv/components/OpenLVConnectionForm/index.tsx
+@@ -0,0 +1,82 @@
++import { useCallback, useEffect } from 'react'
++import type { ReactElement } from 'react'
++import type { Session } from '@openlv/session'
++import useLocalStorage from '@/services/local-storage/useLocalStorage'
++import InfoIcon from '@safe-global/views/assets/images/notifications/info.svg'
++import { Button } from '@safe-global/views/components/ui/button'
++import { Separator } from '@safe-global/views/components/ui/separator'
++import { Tooltip, TooltipContent, TooltipTrigger } from '@safe-global/views/components/ui/tooltip'
++import { Typography } from '@safe-global/views/components/ui/typography'
++import OpenLVHints from '../OpenLVHints'
++import OpenLVSessionList from '../OpenLVSessionList'
++import OpenLVInput from '../OpenLVInput'
++import OpenLVLogoHeader from '../OpenLVLogoHeader'
++import useSafeInfo from '@/hooks/useSafeInfo'
++import Track from '@/components/common/Track'
++import { OPENLV_EVENTS } from '@/services/analytics/events/openlv'
++import { BRAND_NAME } from '@/config/constants'
++
++const OPENLV_HINTS_KEY = 'openlvHints'
++
++const OpenLVConnectionForm = ({ sessions, uri }: { sessions: Session[]; uri: string }): ReactElement => {
++  const [showHints = true, setShowHints] = useLocalStorage<boolean>(OPENLV_HINTS_KEY)
++  const { safeLoaded } = useSafeInfo()
++
++  const onToggle = useCallback(() => {
++    setShowHints((prev) => !prev)
++  }, [setShowHints])
++
++  useEffect(() => {
++    return () => setShowHints(false)
++  }, [setShowHints])
++
++  return (
++    <div className="relative flex flex-col">
++      <div className="pb-6 text-center">
++        <Tooltip>
++          <TooltipTrigger
++            render={
++              <span className="inline-flex absolute top-0 right-3 h-[50px] items-center">
++                <Track {...(showHints ? OPENLV_EVENTS.HINTS_HIDE : OPENLV_EVENTS.HINTS_SHOW)}>
++                  <Button variant="ghost" size="icon" onClick={onToggle}>
++                    <InfoIcon className="size-6 text-[var(--color-border-main)]" />
++                  </Button>
++                </Track>
++              </span>
++            }
++          />
++          <TooltipContent>{showHints ? 'Hide how openlv works' : 'How does openlv work?'}</TooltipContent>
++        </Tooltip>
++
++        <OpenLVLogoHeader />
++
++        <Typography variant="paragraph-small" className="text-muted-foreground">
++          {safeLoaded
++            ? `Paste the connection URL below to connect to your ${BRAND_NAME} via openlv`
++            : `Please open one of your Safe accounts to connect to via openlv`}
++        </Typography>
++
++        {safeLoaded ? (
++          <div className="mt-6">
++            <OpenLVInput uri={uri} />
++          </div>
++        ) : null}
++      </div>
++      <Separator />
++      <div className="py-6">
++        <OpenLVSessionList sessions={sessions} />
++      </div>
++      {showHints && (
++        <>
++          <Separator />
++
++          <div className="pt-6">
++            <OpenLVHints />
++          </div>
++        </>
++      )}
++    </div>
++  )
++}
++
++export default OpenLVConnectionForm
+diff --git a/apps/web/src/features/openlv/components/OpenLVContext/index.tsx b/apps/web/src/features/openlv/components/OpenLVContext/index.tsx
+new file mode 100644
+index 000000000..492d698e7
+--- /dev/null
++++ b/apps/web/src/features/openlv/components/OpenLVContext/index.tsx
+@@ -0,0 +1,104 @@
++import { createContext, useEffect, useState, useCallback, type ReactNode } from 'react'
++import type { Session } from '@openlv/session'
++
++import useSafeInfo from '@/hooks/useSafeInfo'
++import useSafeWalletProvider, { type ChainSwitchUi } from '@/services/safe-wallet-provider/useSafeWalletProvider'
++import { IS_PRODUCTION } from '@/config/constants'
++import { asError } from '@safe-global/utils/services/exceptions/utils'
++import { OPENLV_APP_URL } from '../../constants'
++import { getPeerIcon, getPeerName, toSessionResponse } from '../../services/utils'
++import { trackRequest } from '../../services/tracking'
++import { openLVPopupStore } from '../../store/openLVPopupStore'
++import { openLVChainSwitchStore } from '../../store/openLVChainSwitchStore'
++import openLVInstance from '../../services/openLVInstance'
++import type { OpenLVContextType, OpenLVLoadingState } from '../../types'
++
++const FALLBACK_PEER_NAME = 'openlv'
++
++const chainSwitchUi: ChainSwitchUi = { popupStore: openLVPopupStore, chainSwitchStore: openLVChainSwitchStore }
++
++export const OpenLVContext = createContext<OpenLVContextType>({
++  openLV: openLVInstance,
++  sessions: [],
++  error: null,
++  setError: () => {},
++  open: false,
++  setOpen: () => {},
++  loading: null,
++  setLoading: () => {},
++})
++
++export const OpenLVProvider = ({ children }: { children: ReactNode }) => {
++  const openLV = openLVInstance
++  const open = openLVPopupStore.useStore() ?? false
++  const setOpen = openLVPopupStore.setStore
++  const [error, setError] = useState<Error | null>(null)
++  const [loading, setLoading] = useState<OpenLVLoadingState | null>(null)
++
++  const [sessions, setSessions] = useState<Session[]>(openLV.getActiveSessions())
++
++  const updateSessions = useCallback(() => {
++    setSessions(openLV.getActiveSessions())
++  }, [openLV])
++
++  useEffect(() => {
++    return openLV.onSessionAdd(updateSessions)
++  }, [openLV, updateSessions])
++
++  useEffect(() => {
++    return openLV.onSessionDelete(updateSessions)
++  }, [openLV, updateSessions])
++
++  const safeWalletProvider = useSafeWalletProvider(sessions.length > 0, chainSwitchUi)
++  const { safe } = useSafeInfo()
++
++  useEffect(() => {
++    if (!safeWalletProvider || !safe.chainId) return
++
++    return openLV.onRequest(async ({ id, session, method, params }) => {
++      if (!IS_PRODUCTION) {
++        console.log('[openlv] request', method, params)
++      }
++
++      const peer = session.peerInfo.get()
++      const peerName = getPeerName(peer) || FALLBACK_PEER_NAME
++
++      trackRequest(peer?.identity ?? '', method)
++
++      try {
++        const response = await safeWalletProvider.request(
++          id,
++          { method, params },
++          {
++            url: OPENLV_APP_URL,
++            name: peerName,
++            description: '',
++            iconUrl: getPeerIcon(peer) ?? '',
++          },
++        )
++
++        return toSessionResponse(response)
++      } catch (e) {
++        setError(asError(e))
++        throw e
++      }
++    })
++  }, [openLV, safe.chainId, safeWalletProvider])
++
++  return (
++    <OpenLVContext.Provider
++      value={{
++        openLV,
++        error,
++        setError,
++        open,
++        setOpen,
++        loading,
++        setLoading,
++        sessions,
++      }}
++    >
++      {children}
++    </OpenLVContext.Provider>
++  )
++}
+diff --git a/apps/web/src/features/openlv/components/OpenLVErrorMessage/index.tsx b/apps/web/src/features/openlv/components/OpenLVErrorMessage/index.tsx
+new file mode 100644
+index 000000000..18d38af28
+--- /dev/null
++++ b/apps/web/src/features/openlv/components/OpenLVErrorMessage/index.tsx
+@@ -0,0 +1,23 @@
++import { splitError } from '../../services/utils'
++import { Button } from '@safe-global/views/components/ui/button'
++import { Typography } from '@safe-global/views/components/ui/typography'
++import OpenLVLogoHeader from '../OpenLVLogoHeader'
++
++const OpenLVErrorMessage = ({ error, onClose }: { error: Error; onClose: () => void }) => {
++  const message = error.message || 'An error occurred'
++  const [summary, details] = splitError(message)
++
++  return (
++    <div className="flex flex-col items-center text-center">
++      <OpenLVLogoHeader errorMessage={summary} />
++
++      {details && <Typography className="mt-1 w-full overflow-hidden text-ellipsis hyphens-auto">{details}</Typography>}
++
++      <Button variant="default" size="sm" onClick={onClose} className="mt-3">
++        OK
++      </Button>
++    </div>
++  )
++}
++
++export default OpenLVErrorMessage
+diff --git a/apps/web/src/features/openlv/components/OpenLVHeaderWidget/OpenLVIcon.tsx b/apps/web/src/features/openlv/components/OpenLVHeaderWidget/OpenLVIcon.tsx
+new file mode 100644
+index 000000000..50f107600
+--- /dev/null
++++ b/apps/web/src/features/openlv/components/OpenLVHeaderWidget/OpenLVIcon.tsx
+@@ -0,0 +1,54 @@
++import { type ReactElement } from 'react'
++import OpenLVLogo from '@/public/images/common/openlv.svg'
++import SafeAppIconCard from '@safe-global/views/components/safe-apps/SafeAppIconCard'
++import IconAction from '@safe-global/views/components/common/IconAction'
++import { OPENLV_EVENTS } from '@/services/analytics/events/openlv'
++import Track from '@/components/common/Track'
++
++type OpenLVIconProps = {
++  onClick: () => void
++  sessionCount: number
++  isError: boolean
++  sessionIcon?: string
++}
++
++const OpenLVIcon = ({ sessionCount, sessionIcon, isError, onClick }: OpenLVIconProps): ReactElement => {
++  const showIcon = sessionCount === 1 && !!sessionIcon
++
++  return (
++    <Track {...OPENLV_EVENTS.POPUP_OPENED}>
++      <div className="relative flex items-center rounded-lg bg-muted">
++        <IconAction onClick={onClick} aria-label="openlv">
++          <OpenLVLogo className="size-5 text-muted-foreground [&_path]:fill-current [&_path]:stroke-current" />
++        </IconAction>
++
++        {isError && (
++          <span
++            className="absolute z-10 flex items-center justify-center rounded-full border-[3px] border-card bg-[var(--color-error-main)] w-[10px] h-[10px] top-[9px] right-[10px]"
++            aria-label="openlv error"
++          />
++        )}
++
++        {!isError && showIcon && (
++          <span
++            className="absolute z-10 -bottom-[2px] -right-[2px] rounded-full overflow-hidden border-2 border-card"
++            aria-label="Connected dApp"
++          >
++            <SafeAppIconCard alt="Connected dApp icon" src={sessionIcon} width={18} height={18} />
++          </span>
++        )}
++
++        {!isError && sessionCount > 1 && (
++          <span
++            className="absolute z-10 flex items-center justify-center rounded-full bg-[rgba(18,255,128,0.1)] text-[10px] font-medium leading-none text-secondary-foreground min-w-[18px] h-[18px] px-1 -top-[2px] -right-[4px]"
++            aria-label={`${sessionCount} openlv sessions`}
++          >
++            {sessionCount}
++          </span>
++        )}
++      </div>
++    </Track>
++  )
++}
++
++export default OpenLVIcon
+diff --git a/apps/web/src/features/openlv/components/OpenLVHeaderWidget/index.tsx b/apps/web/src/features/openlv/components/OpenLVHeaderWidget/index.tsx
+new file mode 100644
+index 000000000..2f5cd2d6d
+--- /dev/null
++++ b/apps/web/src/features/openlv/components/OpenLVHeaderWidget/index.tsx
+@@ -0,0 +1,37 @@
++import { type ReactNode, useRef } from 'react'
++import type { Session } from '@openlv/session'
++import Popup from '@safe-global/views/components/common/Popup'
++import { getPeerIcon } from '../../services/utils'
++import OpenLVIcon from './OpenLVIcon'
++
++type OpenLVHeaderWidgetProps = {
++  children: ReactNode
++  sessions: Session[]
++  isError: boolean
++  isOpen: boolean
++  onOpen: () => void
++  onClose: () => void
++}
++
++const OpenLVHeaderWidget = ({ sessions, ...props }: OpenLVHeaderWidgetProps) => {
++  const iconRef = useRef<HTMLDivElement>(null)
++
++  return (
++    <>
++      <div ref={iconRef}>
++        <OpenLVIcon
++          onClick={props.onOpen}
++          sessionCount={sessions.length}
++          sessionIcon={getPeerIcon(sessions[0]?.peerInfo.get())}
++          isError={props.isError}
++        />
++      </div>
++
++      <Popup keepMounted anchorEl={iconRef.current} open={props.isOpen} onClose={props.onClose} transitionDuration={0}>
++        {props.children}
++      </Popup>
++    </>
++  )
++}
++
++export default OpenLVHeaderWidget
+diff --git a/apps/web/src/features/openlv/components/OpenLVHints/index.tsx b/apps/web/src/features/openlv/components/OpenLVHints/index.tsx
+new file mode 100644
+index 000000000..90665ab30
+--- /dev/null
++++ b/apps/web/src/features/openlv/components/OpenLVHints/index.tsx
+@@ -0,0 +1,103 @@
++import {
++  Accordion,
++  AccordionItem,
++  AccordionTrigger,
++  AccordionContent,
++} from '@safe-global/views/components/ui/accordion'
++import { Typography } from '@safe-global/views/components/ui/typography'
++import { useState } from 'react'
++import type { ReactElement } from 'react'
++import Question from '@/public/images/common/question.svg'
++import { trackEvent } from '@/services/analytics'
++import { OPENLV_EVENTS } from '@/services/analytics/events/openlv'
++
++const HintAccordion = ({
++  title,
++  items,
++  expanded,
++  onExpand,
++}: {
++  title: string
++  items: Array<string>
++  expanded: boolean
++  onExpand: () => void
++}): ReactElement => {
++  return (
++    <Accordion value={expanded ? ['item'] : []} onValueChange={onExpand}>
++      <AccordionItem
++        value="item"
++        className="overflow-hidden rounded-lg border border-transparent transition-colors hover:border-[var(--color-success-light)] data-open:border-[var(--color-success-light)]"
++      >
++        <AccordionTrigger className="px-4 transition-colors hover:bg-[var(--color-success-background)] aria-expanded:bg-[var(--color-success-background)]">
++          <Typography className="flex items-center justify-center">
++            <Question className="mr-1 size-4 align-middle text-current" />
++            {title}
++          </Typography>
++        </AccordionTrigger>
++
++        <AccordionContent className="px-4 pb-4 pt-0">
++          <div className="flex flex-col gap-2 p-2">
++            {items.map((item, i) => (
++              <div key={i} className="flex items-center">
++                <div className="mr-2 flex">
++                  <div className="flex size-4 items-center justify-center rounded-full bg-[var(--color-border-light)] text-[11px] text-foreground">
++                    {i + 1}
++                  </div>
++                </div>
++                <Typography variant="paragraph-small">{item}</Typography>
++              </div>
++            ))}
++          </div>
++        </AccordionContent>
++      </AccordionItem>
++    </Accordion>
++  )
++}
++
++const ConnectionTitle = 'How do I connect to a dApp?'
++const ConnectionSteps = [
++  'Open an openlv supported dApp',
++  'Connect a wallet',
++  'Select openlv as the wallet',
++  'Copy the connection URL and paste it into the input field above',
++  'dApp is now connected to the Safe',
++]
++
++const InteractionTitle = 'How do I interact with a dApp?'
++const InteractionSteps = [
++  'Connect a dApp by following the above steps',
++  'Ensure the dApp is connected to the same chain as your Safe account',
++  'Initiate a transaction/signature request via the dApp',
++  'Transact/sign as normal via the Safe',
++]
++
++const OpenLVHints = (): ReactElement => {
++  const [expandedAccordion, setExpandedAccordion] = useState<'connection' | 'interaction' | null>(null)
++
++  const onExpand = (accordion: 'connection' | 'interaction') => {
++    setExpandedAccordion((prev) => {
++      return prev === accordion ? null : accordion
++    })
++
++    trackEvent(OPENLV_EVENTS.HINTS_EXPAND)
++  }
++
++  return (
++    <div className="flex flex-col gap-2">
++      <HintAccordion
++        title={ConnectionTitle}
++        items={ConnectionSteps}
++        onExpand={() => onExpand('connection')}
++        expanded={expandedAccordion === 'connection'}
++      />
++      <HintAccordion
++        title={InteractionTitle}
++        items={InteractionSteps}
++        onExpand={() => onExpand('interaction')}
++        expanded={expandedAccordion === 'interaction'}
++      />
++    </div>
++  )
++}
++
++export default OpenLVHints
+diff --git a/apps/web/src/features/openlv/components/OpenLVInput/index.tsx b/apps/web/src/features/openlv/components/OpenLVInput/index.tsx
+new file mode 100644
+index 000000000..92c34d1a0
+--- /dev/null
++++ b/apps/web/src/features/openlv/components/OpenLVInput/index.tsx
+@@ -0,0 +1,125 @@
++import Track from '@/components/common/Track'
++import { isOpenLVUri } from '../../services/utils'
++import { OpenLVContext } from '../OpenLVContext'
++import { OpenLVLoadingState } from '../../types'
++import useDebounce from '@safe-global/utils/hooks/useDebounce'
++import { trackEvent } from '@/services/analytics'
++import { OPENLV_EVENTS } from '@/services/analytics/events/openlv'
++import { asError } from '@safe-global/utils/services/exceptions/utils'
++import { getClipboard, isClipboardSupported } from '@/utils/clipboard'
++import { Button } from '@safe-global/views/components/ui/button'
++import { Spinner } from '@safe-global/views/components/ui/spinner'
++import { Input } from '@safe-global/views/components/ui/input'
++import { Label } from '@safe-global/views/components/ui/label'
++import { InputGroup, InputGroupInput, InputGroupAddon } from '@safe-global/views/components/ui/input-group'
++import { useCallback, useContext, useEffect, useId, useState } from 'react'
++
++const useTrackErrors = (error?: Error) => {
++  const debouncedErrorMessage = useDebounce(error?.message, 1000)
++
++  useEffect(() => {
++    if (debouncedErrorMessage) {
++      trackEvent({ ...OPENLV_EVENTS.SHOW_ERROR, label: debouncedErrorMessage })
++    }
++  }, [debouncedErrorMessage])
++}
++
++const OpenLVInput = ({ uri }: { uri: string }) => {
++  const { openLV, loading, setLoading } = useContext(OpenLVContext)
++  const [value, setValue] = useState('')
++  const [inputError, setInputError] = useState<Error>()
++  const inputId = useId()
++  useTrackErrors(inputError)
++
++  const onInput = useCallback(
++    async (val: string) => {
++      setValue(val)
++
++      if (val && !isOpenLVUri(val)) {
++        setInputError(new Error('Invalid connection URL'))
++        return
++      }
++
++      setInputError(undefined)
++
++      if (!val) return
++
++      setLoading(OpenLVLoadingState.CONNECT)
++
++      try {
++        const session = await openLV.connect(val)
++
++        trackEvent({ ...OPENLV_EVENTS.CONNECTED, label: session.peerInfo.get()?.identity ?? '' })
++        setValue('')
++      } catch (e) {
++        setInputError(asError(e))
++      }
++
++      setLoading(null)
++    },
++    [openLV, setLoading],
++  )
++
++  useEffect(() => {
++    if (uri) {
++      onInput(uri)
++    }
++  }, [onInput, uri])
++
++  const onPaste = useCallback(async () => {
++    const clipboard = await getClipboard()
++
++    if (clipboard && isOpenLVUri(clipboard)) {
++      onInput(clipboard)
++    }
++  }, [onInput])
++
++  const label = inputError ? inputError.message : 'Connection URL'
++
++  return (
++    <div className="flex w-full flex-col gap-1.5 text-left">
++      <Label htmlFor={inputId} className={inputError ? 'text-destructive' : undefined}>
++        {label}
++      </Label>
++
++      {isClipboardSupported() ? (
++        <Input
++          id={inputId}
++          data-testid="openlv-input"
++          value={value}
++          onChange={(e) => onInput(e.target.value)}
++          autoComplete="off"
++          autoFocus
++          disabled={!!loading}
++          aria-invalid={!!inputError}
++          placeholder="openlv://"
++          spellCheck={false}
++        />
++      ) : (
++        <InputGroup>
++          <InputGroupInput
++            id={inputId}
++            data-testid="openlv-input"
++            value={value}
++            onChange={(e) => onInput(e.target.value)}
++            autoComplete="off"
++            autoFocus
++            disabled={!!loading}
++            aria-invalid={!!inputError}
++            placeholder="openlv://"
++            spellCheck={false}
++          />
++          <InputGroupAddon align="inline-end" className="pr-0">
++            <Track {...OPENLV_EVENTS.PASTE_CLICK}>
++              <Button variant="default" size="sm" onClick={onPaste} disabled={!!loading}>
++                {loading === OpenLVLoadingState.CONNECT ? <Spinner className="size-5" /> : 'Paste'}
++              </Button>
++            </Track>
++          </InputGroupAddon>
++        </InputGroup>
++      )}
++    </div>
++  )
++}
++
++export default OpenLVInput
+diff --git a/apps/web/src/features/openlv/components/OpenLVLogoHeader/index.tsx b/apps/web/src/features/openlv/components/OpenLVLogoHeader/index.tsx
+new file mode 100644
+index 000000000..3d6918d90
+--- /dev/null
++++ b/apps/web/src/features/openlv/components/OpenLVLogoHeader/index.tsx
+@@ -0,0 +1,27 @@
++import type { ReactElement } from 'react'
++import { Typography } from '@safe-global/views/components/ui/typography'
++import OpenLVLogo from '@/public/images/common/openlv.svg'
++import Alert from '@/public/images/notifications/alert.svg'
++import { BRAND_NAME } from '@/config/constants'
++
++const OpenLVLogoHeader = ({ errorMessage }: { errorMessage?: string }): ReactElement => {
++  return (
++    <>
++      <div className="flex items-end justify-center">
++        <OpenLVLogo data-testid="openlv-icon" className="size-[50px]" />
++        {errorMessage && (
++          <Alert
++            data-testid="openlv-alert"
++            className="size-5 -ml-4 -mb-1.5 rounded-full border border-card bg-card text-[var(--color-error-main)]"
++          />
++        )}
++      </div>
++
++      <Typography data-testid="openlv-title" variant="h4" className="mt-4 mb-1 w-full overflow-hidden text-ellipsis">
++        {errorMessage || `Connect dApps to ${BRAND_NAME}`}
++      </Typography>
++    </>
++  )
++}
++
++export default OpenLVLogoHeader
+diff --git a/apps/web/src/features/openlv/components/OpenLVSessionList/index.tsx b/apps/web/src/features/openlv/components/OpenLVSessionList/index.tsx
+new file mode 100644
+index 000000000..64219250f
+--- /dev/null
++++ b/apps/web/src/features/openlv/components/OpenLVSessionList/index.tsx
+@@ -0,0 +1,87 @@
++import SafeAppIconCard from '@safe-global/views/components/safe-apps/SafeAppIconCard'
++import { getPeerIcon, getPeerName } from '../../services/utils'
++import { OpenLVContext } from '../OpenLVContext'
++import { OpenLVLoadingState } from '../../types'
++import useSafeInfo from '@/hooks/useSafeInfo'
++import { trackEvent } from '@/services/analytics'
++import { OPENLV_EVENTS } from '@/services/analytics/events/openlv'
++import { asError } from '@safe-global/utils/services/exceptions/utils'
++import { Button } from '@safe-global/views/components/ui/button'
++import { Spinner } from '@safe-global/views/components/ui/spinner'
++import { List, ListItem } from '@safe-global/views/components/ui/list'
++import { Typography } from '@safe-global/views/components/ui/typography'
++import { cn } from '@safe-global/views/utils/cn'
++import type { Session } from '@openlv/session'
++import { useCallback, useContext } from 'react'
++
++type OpenLVSessionListProps = {
++  sessions: Session[]
++}
++
++const MAX_NAME_LENGTH = 23
++
++const OpenLVSessionListItem = ({ session }: { session: Session }) => {
++  const { openLV, setError, loading, setLoading } = useContext(OpenLVContext)
++
++  const { safeLoaded } = useSafeInfo()
++  const peer = session.peerInfo.get()
++  const icon = getPeerIcon(peer)
++  let name = getPeerName(peer) || 'Unknown dApp'
++
++  if (name.length > MAX_NAME_LENGTH + 1) {
++    name = `${name.slice(0, MAX_NAME_LENGTH)}…`
++  }
++
++  const onDisconnect = useCallback(async () => {
++    trackEvent({ ...OPENLV_EVENTS.DISCONNECT_CLICK, label: peer?.identity ?? '' })
++
++    setLoading(OpenLVLoadingState.DISCONNECT)
++
++    try {
++      await openLV.disconnectSession(session)
++    } catch (error) {
++      setLoading(null)
++      setError(asError(error))
++    }
++
++    setLoading(null)
++  }, [openLV, session, peer, setLoading, setError])
++
++  return (
++    <ListItem className="px-4 min-h-14 rounded-md border border-[var(--color-border-light)]">
++      {icon && (
++        <div className="flex pr-1">
++          <SafeAppIconCard src={icon} alt="icon" width={20} height={20} />
++        </div>
++      )}
++
++      <span className={cn('flex-1 truncate text-sm', safeLoaded ? 'text-foreground' : 'text-muted-foreground')}>
++        {name}
++      </span>
++
++      <Button variant="destructive" size="sm" onClick={onDisconnect} disabled={!!loading}>
++        {loading === OpenLVLoadingState.DISCONNECT ? <Spinner className="size-5" /> : 'Disconnect'}
++      </Button>
++    </ListItem>
++  )
++}
++
++const OpenLVSessionList = ({ sessions }: OpenLVSessionListProps) => {
++  if (sessions.length === 0) {
++    return (
++      <Typography variant="paragraph-small" align="center" className="text-muted-foreground">
++        No dApps are connected yet.
++      </Typography>
++    )
++  }
++
++  return (
++    <List className="flex w-full flex-col gap-1 p-0">
++      {sessions.map((session) => (
++        <OpenLVSessionListItem key={session.getHandshakeParameters().sessionId} session={session} />
++      ))}
++    </List>
++  )
++}
++
++export default OpenLVSessionList
+diff --git a/apps/web/src/features/openlv/components/OpenLVSessionManager/index.tsx b/apps/web/src/features/openlv/components/OpenLVSessionManager/index.tsx
+new file mode 100644
+index 000000000..0d822e81e
+--- /dev/null
++++ b/apps/web/src/features/openlv/components/OpenLVSessionManager/index.tsx
+@@ -0,0 +1,57 @@
++import { useCallback, useContext, useEffect } from 'react'
++import { OpenLVContext } from '../OpenLVContext'
++import OpenLVConnectionForm from '../OpenLVConnectionForm'
++import OpenLVErrorMessage from '../OpenLVErrorMessage'
++import OpenLVChainSwitchModal from '../OpenLVChainSwitchModal'
++import { trackEvent } from '@/services/analytics'
++import { OPENLV_EVENTS } from '@/services/analytics/events/openlv'
++import { splitError } from '../../services/utils'
++import { openLVChainSwitchStore } from '../../store/openLVChainSwitchStore'
++
++type OpenLVSessionManagerProps = {
++  uri: string
++}
++
++const OpenLVSessionManager = ({ uri }: OpenLVSessionManagerProps) => {
++  const { sessions, error, setError, open } = useContext(OpenLVContext)
++  const chainSwitchRequest = openLVChainSwitchStore.useStore()
++
++  useEffect(() => {
++    if (!open && chainSwitchRequest) {
++      chainSwitchRequest.onCancel()
++    }
++  }, [open, chainSwitchRequest])
++
++  const onErrorReset = useCallback(() => {
++    setError(null)
++  }, [setError])
++
++  useEffect(() => {
++    if (error) {
++      const label = splitError(error.message || '')[0]
++      trackEvent({ ...OPENLV_EVENTS.SHOW_ERROR, label })
++    }
++  }, [error])
++
++  if (!open && !chainSwitchRequest) return null
++
++  if (chainSwitchRequest) {
++    return (
++      <OpenLVChainSwitchModal
++        appInfo={chainSwitchRequest.appInfo}
++        chain={chainSwitchRequest.chain}
++        safes={chainSwitchRequest.safes}
++        onSelectSafe={chainSwitchRequest.onSelectSafe}
++        onCancel={chainSwitchRequest.onCancel}
++      />
++    )
++  }
++
++  if (error) {
++    return <OpenLVErrorMessage error={error} onClose={onErrorReset} />
++  }
++
++  return <OpenLVConnectionForm sessions={sessions} uri={uri} />
++}
++
++export default OpenLVSessionManager
+diff --git a/apps/web/src/features/openlv/components/OpenLVUi/index.tsx b/apps/web/src/features/openlv/components/OpenLVUi/index.tsx
+new file mode 100644
+index 000000000..9b59dc08b
+--- /dev/null
++++ b/apps/web/src/features/openlv/components/OpenLVUi/index.tsx
+@@ -0,0 +1,50 @@
++import { useCallback, useContext, useEffect } from 'react'
++import ObservabilityErrorBoundary from '@/components/common/ObservabilityErrorBoundary'
++import useSafeInfo from '@/hooks/useSafeInfo'
++import { OpenLVContext, OpenLVProvider } from '../OpenLVContext'
++import useOpenLVUri from '../../hooks/useOpenLVUri'
++import OpenLVHeaderWidget from '../OpenLVHeaderWidget'
++import OpenLVSessionManager from '../OpenLVSessionManager'
++
++const OpenLVWidget = () => {
++  const { openLV, error, open, setOpen, sessions } = useContext(OpenLVContext)
++  const [uri, clearUri] = useOpenLVUri()
++  const { safeLoaded } = useSafeInfo()
++
++  const onOpen = useCallback(() => {
++    setOpen(true)
++  }, [setOpen])
++
++  const onClose = useCallback(() => {
++    setOpen(false)
++  }, [setOpen])
++
++  useEffect(() => {
++    if (safeLoaded && uri) {
++      onOpen()
++    }
++  }, [safeLoaded, uri, onOpen])
++
++  useEffect(() => {
++    return openLV.onSessionAdd(() => {
++      clearUri()
++      onClose()
++    })
++  }, [openLV, clearUri, onClose])
++
++  return (
++    <OpenLVHeaderWidget isError={!!error} isOpen={open} onOpen={onOpen} onClose={onClose} sessions={sessions}>
++      <OpenLVSessionManager uri={uri} />
++    </OpenLVHeaderWidget>
++  )
++}
++
++const OpenLVUi = () => (
++  <ObservabilityErrorBoundary>
++    <OpenLVProvider>
++      <OpenLVWidget />
++    </OpenLVProvider>
++  </ObservabilityErrorBoundary>
++)
++
++export default OpenLVUi
+diff --git a/apps/web/src/features/openlv/constants.ts b/apps/web/src/features/openlv/constants.ts
+new file mode 100644
+index 000000000..5311a62b4
+--- /dev/null
++++ b/apps/web/src/features/openlv/constants.ts
+@@ -0,0 +1,25 @@
++import { BRAND_NAME } from '@/config/constants'
++
++export const SAFE_WALLET_PEER_INFO = {
++  identity: 'global.safe.app',
++  name: BRAND_NAME,
++  icon: 'https://app.safe.global/images/logo-round.svg',
++}
++
++export const OPENLV_URI_PREFIX = 'openlv://'
++
++export const OPENLV_URI_SEARCH_PARAM = 'openlv'
++
++export const OPENLV_APP_URL = 'https://openlv.sh'
++
++export const CONNECT_TIMEOUT = 45_000
++
++export const METHOD_NOT_FOUND = -32601
++
++export const SESSION_ERRORS: Record<number, string> = {
++  4001: 'User Rejected Request',
++  4100: 'Unauthorized',
++  4200: 'Unsupported Method',
++  4900: 'Disconnected',
++  4901: 'Chain Disconnected',
++}
+diff --git a/apps/web/src/features/openlv/contract.ts b/apps/web/src/features/openlv/contract.ts
+new file mode 100644
+index 000000000..eec5d8776
+--- /dev/null
++++ b/apps/web/src/features/openlv/contract.ts
+@@ -0,0 +1,8 @@
++import type OpenLVUi from './components/OpenLVUi'
++import type { openLVPopupStore } from './store/openLVPopupStore'
++
++export interface OpenLVImplementation {
++  OpenLVWidget: typeof OpenLVUi
++
++  openLVPopupStore: typeof openLVPopupStore
++}
+diff --git a/apps/web/src/features/openlv/feature.ts b/apps/web/src/features/openlv/feature.ts
+new file mode 100644
+index 000000000..9945ac417
+--- /dev/null
++++ b/apps/web/src/features/openlv/feature.ts
+@@ -0,0 +1,10 @@
++import type { OpenLVImplementation } from './contract'
++import OpenLVWidget from './components/OpenLVUi'
++import { openLVPopupStore } from './store/openLVPopupStore'
++
++const feature: OpenLVImplementation = {
++  OpenLVWidget,
++  openLVPopupStore,
++}
++
++export default feature
+diff --git a/apps/web/src/features/openlv/hooks/useOpenLVSearchParamUri.ts b/apps/web/src/features/openlv/hooks/useOpenLVSearchParamUri.ts
+new file mode 100644
+index 000000000..e0a502cf5
+--- /dev/null
++++ b/apps/web/src/features/openlv/hooks/useOpenLVSearchParamUri.ts
+@@ -0,0 +1,28 @@
++import { useRouter } from 'next/router'
++import { useCallback } from 'react'
++import { OPENLV_URI_SEARCH_PARAM } from '../constants'
++
++export function useOpenLVSearchParamUri(): [string | null, (uri: string | null) => void] {
++  const router = useRouter()
++  const uri = (router.query[OPENLV_URI_SEARCH_PARAM] || '').toString() || null
++
++  const setUri = useCallback(
++    (uri: string | null) => {
++      const newQuery = { ...router.query }
++
++      if (!uri) {
++        delete newQuery[OPENLV_URI_SEARCH_PARAM]
++      } else {
++        newQuery[OPENLV_URI_SEARCH_PARAM] = uri
++      }
++
++      router.replace({
++        pathname: router.pathname,
++        query: newQuery,
++      })
++    },
++    [router],
++  )
++
++  return [uri, setUri]
++}
+diff --git a/apps/web/src/features/openlv/hooks/useOpenLVUri.ts b/apps/web/src/features/openlv/hooks/useOpenLVUri.ts
+new file mode 100644
+index 000000000..0cda1e52f
+--- /dev/null
++++ b/apps/web/src/features/openlv/hooks/useOpenLVUri.ts
+@@ -0,0 +1,15 @@
++import { useCallback } from 'react'
++import { useOpenLVSearchParamUri } from './useOpenLVSearchParamUri'
++
++const useOpenLVUri = (): [string, () => void] => {
++  const [searchParamUri, setSearchParamUri] = useOpenLVSearchParamUri()
++  const uri = searchParamUri || ''
++
++  const clearUri = useCallback(() => {
++    setSearchParamUri(null)
++  }, [setSearchParamUri])
++
++  return [uri, clearUri]
++}
++
++export default useOpenLVUri
+diff --git a/apps/web/src/features/openlv/index.ts b/apps/web/src/features/openlv/index.ts
+new file mode 100644
+index 000000000..730a4ed4c
+--- /dev/null
++++ b/apps/web/src/features/openlv/index.ts
+@@ -0,0 +1,10 @@
++import { createFeatureHandle } from '@/features/__core__'
++import { FEATURES } from '@safe-global/utils/utils/chains'
++import type { OpenLVImplementation } from './contract'
++
++export const OpenLVFeature = createFeatureHandle<OpenLVImplementation>('openlv', FEATURES.NATIVE_OPENLV)
++
++export type { OpenLVContextType } from './types'
++export { OpenLVLoadingState } from './types'
++
++export { OPENLV_URI_SEARCH_PARAM } from './constants'
+diff --git a/apps/web/src/features/openlv/services/OpenLVWallet.ts b/apps/web/src/features/openlv/services/OpenLVWallet.ts
+new file mode 100644
+index 000000000..c5cf45ba9
+--- /dev/null
++++ b/apps/web/src/features/openlv/services/OpenLVWallet.ts
+@@ -0,0 +1,117 @@
++import { connectSession, SessionStatus, type Session } from '@openlv/session'
++import { webrtc } from '@openlv/transport/webrtc'
++import { CONNECT_TIMEOUT, SAFE_WALLET_PEER_INFO } from '../constants'
++
++export type OpenLVRequest = {
++  id: number
++  session: Session
++  method: string
++  params?: unknown[] | object
++}
++
++type RequestHandler = (request: OpenLVRequest) => Promise<object>
++
++type SessionHandler = (session: Session) => void
++
++const isRequest = (message: object): message is { method: string; params?: unknown[] | object } => {
++  return 'method' in message && typeof message.method === 'string'
++}
++
++class OpenLVWallet {
++  private sessions: Session[] = []
++  private requestHandler: RequestHandler | undefined
++  private requestId = 0
++  private sessionAddHandlers = new Set<SessionHandler>()
++  private sessionDeleteHandlers = new Set<SessionHandler>()
++
++  public async connect(url: string) {
++    const session: Session = await connectSession(url, (message) => this.handleMessage(session, message), [webrtc()], {
++      info: SAFE_WALLET_PEER_INFO,
++    })
++
++    let timer: number | undefined
++
++    try {
++      await session.connect()
++
++      const timeout = new Promise<never>((_, reject) => {
++        timer = window.setTimeout(() => reject(new Error('Connection timed out')), CONNECT_TIMEOUT)
++      })
++      const status = await Promise.race([
++        session.status.until((value) => value === SessionStatus.CONNECTED || value === SessionStatus.DISCONNECTED),
++        timeout,
++      ])
++
++      if (status === SessionStatus.DISCONNECTED) {
++        throw new Error(session.error.get() ?? 'Connection failed')
++      }
++    } catch (error) {
++      await session.close().catch(() => undefined)
++      throw error
++    } finally {
++      clearTimeout(timer)
++    }
++
++    this.sessions.push(session)
++    this.sessionAddHandlers.forEach((handler) => handler(session))
++
++    session.status.subscribe((status) => {
++      if (status === SessionStatus.DISCONNECTED) this.removeSession(session)
++    })
++
++    return session
++  }
++
++  private async handleMessage(session: Session, message: object) {
++    if (!this.requestHandler || !isRequest(message)) {
++      throw new Error('Unsupported request')
++    }
++
++    this.requestId += 1
++
++    return await this.requestHandler({ id: this.requestId, session, method: message.method, params: message.params })
++  }
++
++  private removeSession(session: Session) {
++    if (!this.sessions.includes(session)) return
++
++    this.sessions = this.sessions.filter((item) => item !== session)
++    this.sessionDeleteHandlers.forEach((handler) => handler(session))
++  }
++
++  public onSessionAdd(handler: SessionHandler) {
++    this.sessionAddHandlers.add(handler)
++
++    return () => {
++      this.sessionAddHandlers.delete(handler)
++    }
++  }
++
++  public onSessionDelete(handler: SessionHandler) {
++    this.sessionDeleteHandlers.add(handler)
++
++    return () => {
++      this.sessionDeleteHandlers.delete(handler)
++    }
++  }
++
++  public async disconnectSession(session: Session) {
++    await session.close()
++
++    this.removeSession(session)
++  }
++
++  public getActiveSessions(): Session[] {
++    return this.sessions
++  }
++
++  public onRequest(handler: RequestHandler) {
++    this.requestHandler = handler
++
++    return () => {
++      if (this.requestHandler === handler) this.requestHandler = undefined
++    }
++  }
++}
++
++export default OpenLVWallet
+diff --git a/apps/web/src/features/openlv/services/openLVInstance.ts b/apps/web/src/features/openlv/services/openLVInstance.ts
+new file mode 100644
+index 000000000..cbff68e71
+--- /dev/null
++++ b/apps/web/src/features/openlv/services/openLVInstance.ts
+@@ -0,0 +1,5 @@
++import OpenLVWallet from './OpenLVWallet'
++
++const openLVInstance = new OpenLVWallet()
++
++export default openLVInstance
+diff --git a/apps/web/src/features/openlv/services/tracking.ts b/apps/web/src/features/openlv/services/tracking.ts
+new file mode 100644
+index 000000000..779644ab3
+--- /dev/null
++++ b/apps/web/src/features/openlv/services/tracking.ts
+@@ -0,0 +1,17 @@
++import { trackEvent } from '@/services/analytics'
++import { OPENLV_EVENTS } from '@/services/analytics/events/openlv'
++
++const trackedRequests = [
++  'personal_sign',
++  'eth_sign',
++  'eth_signTypedData',
++  'eth_signTypedData_v4',
++  'eth_sendTransaction',
++  'wallet_sendCalls',
++]
++
++export const trackRequest = (peerIdentity: string, method: string) => {
++  if (trackedRequests.includes(method)) {
++    trackEvent({ ...OPENLV_EVENTS.REQUEST, label: peerIdentity })
++  }
++}
+diff --git a/apps/web/src/features/openlv/services/utils.ts b/apps/web/src/features/openlv/services/utils.ts
+new file mode 100644
+index 000000000..f523d600b
+--- /dev/null
++++ b/apps/web/src/features/openlv/services/utils.ts
+@@ -0,0 +1,29 @@
++import type { PeerInfo } from '@openlv/session'
++import { METHOD_NOT_FOUND, OPENLV_URI_PREFIX, SESSION_ERRORS } from '../constants'
++
++const ICON_PATTERN = /^(https:\/\/|data:image\/(png|jpeg|webp|gif);)/
++
++export const isOpenLVUri = (uri: string): boolean => {
++  return uri.startsWith(OPENLV_URI_PREFIX)
++}
++
++export const getPeerName = (peer: PeerInfo | undefined): string => {
++  return peer?.name ?? ''
++}
++
++export const getPeerIcon = (peer: PeerInfo | undefined): string | undefined => {
++  return peer?.icon && ICON_PATTERN.test(peer.icon) ? peer.icon : undefined
++}
++
++export const splitError = (message: string): string[] => {
++  return message.split(/: (.+)/).slice(0, 2)
++}
++
++export const toSessionResponse = (response: { result: unknown } | { error: { code: number } }) => {
++  if (!('error' in response)) return { result: response.result }
++
++  const code = response.error.code === METHOD_NOT_FOUND ? 4200 : response.error.code
++  const message = SESSION_ERRORS[code]
++
++  return { error: message ? { code, message } : { code: -32603, message: 'Internal error' } }
++}
+diff --git a/apps/web/src/features/openlv/store/openLVChainSwitchStore.ts b/apps/web/src/features/openlv/store/openLVChainSwitchStore.ts
+new file mode 100644
+index 000000000..5126e2d76
+--- /dev/null
++++ b/apps/web/src/features/openlv/store/openLVChainSwitchStore.ts
+@@ -0,0 +1,4 @@
++import ExternalStore from '@safe-global/utils/services/ExternalStore'
++import type { OpenLVChainSwitchRequest } from '../types'
++
++export const openLVChainSwitchStore = new ExternalStore<OpenLVChainSwitchRequest | undefined>(undefined)
+diff --git a/apps/web/src/features/openlv/store/openLVPopupStore.ts b/apps/web/src/features/openlv/store/openLVPopupStore.ts
+new file mode 100644
+index 000000000..91f72c3a6
+--- /dev/null
++++ b/apps/web/src/features/openlv/store/openLVPopupStore.ts
+@@ -0,0 +1,3 @@
++import ExternalStore from '@safe-global/utils/services/ExternalStore'
++
++export const openLVPopupStore = new ExternalStore<boolean>(false)
+diff --git a/apps/web/src/features/openlv/styles.module.css b/apps/web/src/features/openlv/styles.module.css
+deleted file mode 100644
+index 763321ffa..000000000
+--- a/apps/web/src/features/openlv/styles.module.css
++++ /dev/null
+@@ -1,60 +0,0 @@
+-.button {
+-  background: var(--color-background-main);
+-  color: var(--button-color);
+-  border: 2px solid var(--button-color);
+-  border-radius: 6px;
+-  padding: 0.5rem 1rem;
+-  display: flex;
+-  flex-direction: row;
+-  align-items: center;
+-  gap: 0.5rem;
+-  cursor: pointer;
+-  transition: 250ms;
+-  width: max-content;
+-}
+-
+-.button:hover {
+-  color: var(--button-color-hover);
+-  background: var(--button-bg-hover, black);
+-}
+-
+-.connect {
+-  color: var(--color-background-main);
+-  background: #fe7d37;
+-}
+-.connect:hover {
+-  background: #ce6024;
+-}
+-
+-.li {
+-  list-style-type: none;
+-  padding-left: 0;
+-  padding-bottom: 1rem;
+-}
+-
+-.connectionUI {
+-  display: flex;
+-  flex-direction: row;
+-  gap: 0.5rem;
+-}
+-
+-.connectionInput {
+-  border: 1px solid #fe7d37;
+-  background: var(--color-background-main);
+-  border-radius: 6px;
+-  color: #fe7d37;
+-  padding-left: 0.5rem;
+-  font-family: inherit;
+-}
+-
+-.connected {
+-  display: flex;
+-  flex-direction: column;
+-  gap: 1rem;
+-}
+-
+-.wallet {
+-  display: flex;
+-  flex-direction: row;
+-  gap: 0.5rem;
+-}
+diff --git a/apps/web/src/features/openlv/types.ts b/apps/web/src/features/openlv/types.ts
+new file mode 100644
+index 000000000..a3186cff7
+--- /dev/null
++++ b/apps/web/src/features/openlv/types.ts
+@@ -0,0 +1,30 @@
++import type { Dispatch, SetStateAction } from 'react'
++import type { Session } from '@openlv/session'
++import type { Chain } from '@safe-global/store/gateway/AUTO_GENERATED/chains'
++import type { AppInfo } from '@/services/safe-wallet-provider'
++import type { SafeItem } from '@/hooks/safes'
++import type OpenLVWallet from './services/OpenLVWallet'
++
++export enum OpenLVLoadingState {
++  CONNECT = 'Connect',
++  DISCONNECT = 'Disconnect',
++}
++
++export type OpenLVContextType = {
++  openLV: OpenLVWallet
++  sessions: Session[]
++  error: Error | null
++  setError: Dispatch<SetStateAction<Error | null>>
++  open: boolean
++  setOpen: (open: boolean) => void
++  loading: OpenLVLoadingState | null
++  setLoading: Dispatch<SetStateAction<OpenLVLoadingState | null>>
++}
++
++export type OpenLVChainSwitchRequest = {
++  appInfo: AppInfo
++  chain: Chain
++  safes: SafeItem[]
++  onSelectSafe: (safe: SafeItem) => Promise<void>
++  onCancel: () => void
++}
+diff --git a/apps/web/src/features/spaces/components/HeaderNavigation/HeaderNavigation.tsx b/apps/web/src/features/spaces/components/HeaderNavigation/HeaderNavigation.tsx
+index 07a4e1f86..5fa511dbf 100644
+--- a/apps/web/src/features/spaces/components/HeaderNavigation/HeaderNavigation.tsx
++++ b/apps/web/src/features/spaces/components/HeaderNavigation/HeaderNavigation.tsx
+@@ -54,6 +54,7 @@ export interface HeaderNavigationProps {
+   onWalletClick?: (event: MouseEvent<HTMLButtonElement>) => void
+   /** Slot for WalletConnect widget (renders its own button + popup) */
+   walletConnectSlot?: ReactNode
++  openLVSlot?: ReactNode
+   /** Whether to show the Batch button */
+   showBatch?: boolean
+   /** Batch button callback */
+@@ -78,6 +79,7 @@ export function HeaderNavigation({
+   onNotificationsClick,
+   onWalletClick,
+   walletConnectSlot,
++  openLVSlot,
+   showBatch = false,
+   onBatchClick,
+   batchCount = 0,
+@@ -131,6 +133,8 @@ export function HeaderNavigation({
+ 
+       {walletConnectSlot}
+ 
++      {openLVSlot}
++
+       {showBatch && (
+         <BatchTooltip>
+           <Track {...BATCH_EVENTS.BATCH_SIDEBAR_OPEN} label={batchCount}>
+diff --git a/apps/web/src/hooks/useChains.ts b/apps/web/src/hooks/useChains.ts
+index 2408a3d7f..371a2c76f 100644
+--- a/apps/web/src/hooks/useChains.ts
++++ b/apps/web/src/hooks/useChains.ts
+@@ -2,15 +2,20 @@ import { useMemo } from 'react'
+ import { type Chain } from '@safe-global/store/gateway/AUTO_GENERATED/chains'
+ import { useGetChainsConfigV2Query } from '@safe-global/store/gateway'
+ import useChainId from './useChainId'
+-import { type FEATURES, hasFeature } from '@safe-global/utils/utils/chains'
++import { FEATURES, hasFeature } from '@safe-global/utils/utils/chains'
+ import { getRtkQueryErrorMessage } from '@/utils/rtkQuery'
+ import { CONFIG_SERVICE_KEY } from '@/config/constants'
+ import { useChainsWithOverrides } from '@/features/feature-flag-overrides'
+ 
++const withOpenLV = (chain: Chain): Chain =>
++  chain.features.includes(FEATURES.NATIVE_OPENLV)
++    ? chain
++    : { ...chain, features: [...chain.features, FEATURES.NATIVE_OPENLV] }
++
+ const useChains = (): { configs: Chain[]; error?: string; loading?: boolean } => {
+   const { data, error, isLoading } = useGetChainsConfigV2Query(CONFIG_SERVICE_KEY)
+ 
+-  const rawConfigs = useMemo(() => (data ? data.ids.map((id) => data.entities[id]!) : []), [data])
++  const rawConfigs = useMemo(() => (data ? data.ids.map((id) => withOpenLV(data.entities[id]!)) : []), [data])
+   const configs = useChainsWithOverrides(rawConfigs)
+ 
+   return useMemo(
+@@ -29,7 +34,7 @@ export const useChain = (chainId: string): Chain | undefined => {
+   const { data } = useGetChainsConfigV2Query(CONFIG_SERVICE_KEY)
+ 
+   const rawChain = data?.entities[chainId]
+-  const rawChains = useMemo(() => (rawChain ? [rawChain] : []), [rawChain])
++  const rawChains = useMemo(() => (rawChain ? [withOpenLV(rawChain)] : []), [rawChain])
+ 
+   return useChainsWithOverrides(rawChains)[0]
+ }
+diff --git a/apps/web/src/services/analytics/events/openlv.ts b/apps/web/src/services/analytics/events/openlv.ts
+new file mode 100644
+index 000000000..1ecaeab67
+--- /dev/null
++++ b/apps/web/src/services/analytics/events/openlv.ts
+@@ -0,0 +1,45 @@
++import { EventType } from '@/services/analytics/types'
++
++const OPENLV_CATEGORY = 'openlv'
++
++export const OPENLV_EVENTS = {
++  CONNECTED: {
++    action: 'openlv connected',
++    category: OPENLV_CATEGORY,
++    event: EventType.META,
++  },
++  POPUP_OPENED: {
++    action: 'openlv popup',
++    category: OPENLV_CATEGORY,
++  },
++  DISCONNECT_CLICK: {
++    action: 'openlv disconnect click',
++    category: OPENLV_CATEGORY,
++  },
++  PASTE_CLICK: {
++    action: 'openlv paste click',
++    category: OPENLV_CATEGORY,
++  },
++  HINTS_SHOW: {
++    action: 'openlv show hints',
++    category: OPENLV_CATEGORY,
++  },
++  HINTS_HIDE: {
++    action: 'openlv hide hints',
++    category: OPENLV_CATEGORY,
++  },
++  HINTS_EXPAND: {
++    action: 'openlv expand hints',
++    category: OPENLV_CATEGORY,
++  },
++  SHOW_ERROR: {
++    action: 'openlv show error',
++    category: OPENLV_CATEGORY,
++    event: EventType.META,
++  },
++  REQUEST: {
++    action: 'openlv request',
++    category: OPENLV_CATEGORY,
++    event: EventType.META,
++  },
++}
+diff --git a/apps/web/src/services/safe-wallet-provider/useSafeWalletProvider.tsx b/apps/web/src/services/safe-wallet-provider/useSafeWalletProvider.tsx
+index 1e08c5ceb..f1349f1fb 100644
+--- a/apps/web/src/services/safe-wallet-provider/useSafeWalletProvider.tsx
++++ b/apps/web/src/services/safe-wallet-provider/useSafeWalletProvider.tsx
+@@ -31,8 +31,29 @@ import { WalletConnectFeature } from '@/features/walletconnect'
+ import { withSpaceId } from '@/hooks/useUrlSpaceId'
+ import { verifyAndStripNestedTxCalldata, type NestedTxEnvelope } from '@/services/tx/nestedTxEnvelope'
+ import { asError } from '@safe-global/utils/services/exceptions/utils'
++import type ExternalStore from '@safe-global/utils/services/ExternalStore'
++import type { Chain } from '@safe-global/store/gateway/AUTO_GENERATED/chains'
++
++export type ChainSwitchRequest = {
++  appInfo: AppInfo
++  chain: Chain
++  safes: SafeItem[]
++  onSelectSafe: (safe: SafeItem) => Promise<void>
++  onCancel: () => void
++}
++
++export type ChainSwitchUi = {
++  popupStore?: ExternalStore<boolean>
++  chainSwitchStore?: ExternalStore<ChainSwitchRequest | undefined>
++  updateSessions?: (chainId: string, safeAddress: string) => Promise<void>
++}
+ 
+-export const useTxFlowApi = (chainId: string, safeAddress: string, fetchOwnedSafes = true): WalletSDK | undefined => {
++export const useTxFlowApi = (
++  chainId: string,
++  safeAddress: string,
++  fetchOwnedSafes = true,
++  clientUi?: ChainSwitchUi,
++): WalletSDK | undefined => {
+   const { safe } = useSafeInfo()
+   const currentChain = useCurrentChain()
+   const { setTxFlow } = useContext(TxModalContext)
+@@ -44,6 +65,17 @@ export const useTxFlowApi = (chainId: string, safeAddress: string, fetchOwnedSaf
+   const getHref = useGetHref(router)
+   const pendingTxs = useRef<Record<string, string>>({})
+   const walletConnect = useLoadFeature(WalletConnectFeature)
++  const chainSwitchUi = useMemo<ChainSwitchUi>(
++    () =>
++      clientUi ?? {
++        popupStore: walletConnect?.wcPopupStore,
++        chainSwitchStore: walletConnect?.wcChainSwitchStore,
++        updateSessions: async (targetChainId, targetSafeAddress) => {
++          await walletConnect?.walletConnectInstance.updateSessions(targetChainId, targetSafeAddress)
++        },
++      },
++    [clientUi, walletConnect],
++  )
+ 
+   const onChainSigning = useAppSelector(selectOnChainSigning)
+   const [settings, setSettings] = useState<SafeSettings>({
+@@ -204,20 +236,20 @@ export const useTxFlowApi = (chainId: string, safeAddress: string, fetchOwnedSaf
+           : undefined
+ 
+         if (matchingSafe) {
+-          await walletConnect?.walletConnectInstance.updateSessions(targetChain.chainId, matchingSafe.address)
++          await chainSwitchUi.updateSessions?.(targetChain.chainId, matchingSafe.address)
+           await router.push(getHref(targetChain, matchingSafe.address))
+           return null
+         }
+ 
+         return await new Promise<null>((resolve, reject) => {
+           let settled = false
+-          const previousPopupOpen = walletConnect?.wcPopupStore.getStore() ?? false
++          const previousPopupOpen = chainSwitchUi.popupStore?.getStore() ?? false
+ 
+           const closeRequestIfActive = () => {
+             if (settled) return false
+             settled = true
+-            walletConnect?.wcChainSwitchStore.setStore(undefined)
+-            walletConnect?.wcPopupStore.setStore(previousPopupOpen)
++            chainSwitchUi.chainSwitchStore?.setStore(undefined)
++            chainSwitchUi.popupStore?.setStore(previousPopupOpen)
+             return true
+           }
+ 
+@@ -234,7 +266,7 @@ export const useTxFlowApi = (chainId: string, safeAddress: string, fetchOwnedSaf
+             if (settled) return
+ 
+             try {
+-              await walletConnect?.walletConnectInstance.updateSessions(targetChain.chainId, safeItem.address)
++              await chainSwitchUi.updateSessions?.(targetChain.chainId, safeItem.address)
+             } catch (error) {
+               closeRequestIfActive()
+               reject(error as Error)
+@@ -251,8 +283,8 @@ export const useTxFlowApi = (chainId: string, safeAddress: string, fetchOwnedSaf
+             }
+           }
+ 
+-          walletConnect?.wcPopupStore.setStore(true)
+-          walletConnect?.wcChainSwitchStore.setStore({
++          chainSwitchUi.popupStore?.setStore(true)
++          chainSwitchUi.chainSwitchStore?.setStore({
+             appInfo,
+             chain: targetChain as any,
+             safes: safesOnTargetChain,
+@@ -316,15 +348,15 @@ export const useTxFlowApi = (chainId: string, safeAddress: string, fetchOwnedSaf
+     web3ReadOnly,
+     allSafes,
+     getHref,
+-    walletConnect,
++    chainSwitchUi,
+   ])
+ }
+ 
+-const useSafeWalletProvider = (fetchOwnedSafes = true): SafeWalletProvider | undefined => {
++const useSafeWalletProvider = (fetchOwnedSafes = true, clientUi?: ChainSwitchUi): SafeWalletProvider | undefined => {
+   const { safe, safeAddress } = useSafeInfo()
+   const { chainId } = safe
+ 
+-  const txFlowApi = useTxFlowApi(chainId, safeAddress, fetchOwnedSafes)
++  const txFlowApi = useTxFlowApi(chainId, safeAddress, fetchOwnedSafes, clientUi)
+ 
+   return useMemo(() => {
+     if (!safeAddress || !chainId || !txFlowApi) return
+-- 
+2.55.0
+

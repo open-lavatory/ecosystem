@@ -1,0 +1,211 @@
+From b7d316b61d2a46be084f30f0459a39ed9db0f719 Mon Sep 17 00:00:00 2001
+From: Luc <luc@lucemans.nl>
+Date: Wed, 28 Oct 2026 18:05:25 +0100
+Subject: [PATCH] fix(mobile): return EIP-1193 errors to the dApp
+
+- A rejected sign request resolves with 4001 "User Rejected Request"
+  instead of throwing.
+- An unsupported method resolves with 4200 "Unsupported Method".
+- A second sign request while one is pending throws and leaves the
+  first one pending.
+- Disconnecting or leaving the screen closes the session and settles a
+  pending request with 4900 "Disconnected".
+- OpenLVGlobals is mounted in the container so the crypto WebView stays
+  mounted during a sign request.
+---
+ .../src/features/OpenLV/OpenLV.container.tsx  |  8 ++-
+ .../features/OpenLV/components/OpenLVView.tsx | 24 ++++-----
+ .../features/OpenLV/hooks/useWalletSession.ts | 49 ++++++++++++-------
+ 3 files changed, 50 insertions(+), 31 deletions(-)
+
+diff --git a/apps/mobile/src/features/OpenLV/OpenLV.container.tsx b/apps/mobile/src/features/OpenLV/OpenLV.container.tsx
+index 398059fdd..deca88faa 100644
+--- a/apps/mobile/src/features/OpenLV/OpenLV.container.tsx
++++ b/apps/mobile/src/features/OpenLV/OpenLV.container.tsx
+@@ -1,8 +1,14 @@
++import { OpenLVGlobals } from '@openlv/react-native'
+ import { useDefinedActiveSafe } from '@/src/store/hooks/activeSafe'
+ import { OpenLVView } from '@/src/features/OpenLV/components'
+ 
+ export const OpenLVContainer = () => {
+   const activeSafe = useDefinedActiveSafe()
+ 
+-  return <OpenLVView activeSafe={activeSafe} />
++  return (
++    <>
++      <OpenLVGlobals />
++      <OpenLVView activeSafe={activeSafe} />
++    </>
++  )
+ }
+diff --git a/apps/mobile/src/features/OpenLV/components/OpenLVView.tsx b/apps/mobile/src/features/OpenLV/components/OpenLVView.tsx
+index d19f71e4a..6495e2a0c 100644
+--- a/apps/mobile/src/features/OpenLV/components/OpenLVView.tsx
++++ b/apps/mobile/src/features/OpenLV/components/OpenLVView.tsx
+@@ -1,7 +1,6 @@
+ import React, { useCallback, useState } from 'react'
+ import { Pressable } from 'react-native'
+ import type { Code } from 'react-native-vision-camera'
+-import { OpenLVGlobals } from '@openlv/react-native'
+ import { toUtf8String } from 'ethers'
+ import { Text, View, XStack, YStack } from 'tamagui'
+ import { SafeInfo } from '@/src/types/address'
+@@ -17,6 +16,18 @@ type OpenLVViewProps = {
+   activeSafe: SafeInfo
+ }
+ 
++const decodeMessage = (message: string) => {
++  if (!message.startsWith('0x')) {
++    return message
++  }
++
++  try {
++    return toUtf8String(message)
++  } catch {
++    return message
++  }
++}
++
+ export const OpenLVView = ({ activeSafe }: OpenLVViewProps) => {
+   const {
+     connectionUrl,
+@@ -63,15 +74,7 @@ export const OpenLVView = ({ activeSafe }: OpenLVViewProps) => {
+ 
+   if (pendingRequest) {
+     const hasError = Boolean(pendingRequest.error)
+-    let displayMessage = pendingRequest.message
+-
+-    try {
+-      if (displayMessage.startsWith('0x')) {
+-        displayMessage = toUtf8String(displayMessage)
+-      }
+-    } catch {
+-      // Keep original message
+-    }
++    const displayMessage = decodeMessage(pendingRequest.message)
+ 
+     return (
+       <YStack flex={1} padding="$5" gap="$5" justifyContent="center">
+@@ -155,7 +158,6 @@ export const OpenLVView = ({ activeSafe }: OpenLVViewProps) => {
+ 
+   return (
+     <>
+-      <OpenLVGlobals />
+       <XStack
+         backgroundColor="$background"
+         paddingHorizontal="$4"
+diff --git a/apps/mobile/src/features/OpenLV/hooks/useWalletSession.ts b/apps/mobile/src/features/OpenLV/hooks/useWalletSession.ts
+index b1b0fb34b..52861646b 100644
+--- a/apps/mobile/src/features/OpenLV/hooks/useWalletSession.ts
++++ b/apps/mobile/src/features/OpenLV/hooks/useWalletSession.ts
+@@ -21,6 +21,10 @@ export interface PendingRequest {
+   error?: string
+ }
+ 
++const USER_REJECTED_REQUEST = { error: { code: 4001, message: 'User Rejected Request' } }
++const UNSUPPORTED_METHOD = { error: { code: 4200, message: 'Unsupported Method' } }
++const DISCONNECTED = { error: { code: 4900, message: 'Disconnected' } }
++
+ export function useWalletSession(activeSafeAddress: string) {
+   const [connectionUrl, setConnectionUrl] = React.useState<string>('')
+   const [status, setStatus] = React.useState<string>('idle')
+@@ -28,7 +32,7 @@ export function useWalletSession(activeSafeAddress: string) {
+   const [pendingRequest, setPendingRequest] = React.useState<PendingRequest | null>(null)
+ 
+   const requestResolver = React.useRef<{
+-    resolve: (val: string) => void
++    resolve: (val: object | string) => void
+     reject: (err: Error) => void
+   } | null>(null)
+ 
+@@ -36,13 +40,25 @@ export function useWalletSession(activeSafeAddress: string) {
+   const activeSigner = useSelector((state: RootState) => state.activeSigner[activeSafeAddress as Address])
+   const { safe: safeInfo, safeLoaded } = useSafeInfo()
+ 
++  const settlePending = React.useCallback((response: object) => {
++    requestResolver.current?.resolve(response)
++    requestResolver.current = null
++    setPendingRequest(null)
++  }, [])
++
+   React.useEffect(() => {
+     if (!session) {
+       return
+     }
+ 
+-    return session.status.subscribe(setStatus)
+-  }, [session])
++    const unsubscribe = session.status.subscribe(setStatus)
++
++    return () => {
++      unsubscribe()
++      settlePending(DISCONNECTED)
++      void session.close().catch(() => undefined)
++    }
++  }, [session, settlePending])
+ 
+   const startSession = React.useCallback(async () => {
+     try {
+@@ -68,6 +84,10 @@ export function useWalletSession(activeSafeAddress: string) {
+           }
+ 
+           if (req.method === 'personal_sign') {
++            if (requestResolver.current) {
++              throw new Error('Another request is pending')
++            }
++
+             const params = req.params || []
+             const messageParam = params[0]
+             const msg = typeof messageParam === 'string' ? messageParam : String(messageParam ?? '')
+@@ -83,21 +103,18 @@ export function useWalletSession(activeSafeAddress: string) {
+               return Promise.reject(new Error('No signer available for this Safe'))
+             }
+ 
+-            return new Promise<object>((resolve, reject) => {
++            return new Promise<object | string>((resolve, reject) => {
+               setPendingRequest({
+                 type: 'personal_sign',
+                 message: msg,
+                 params,
+               })
+ 
+-              requestResolver.current = {
+-                resolve: resolve as unknown as (val: string) => void,
+-                reject,
+-              }
++              requestResolver.current = { resolve, reject }
+             })
+           }
+ 
+-          return { error: 'Unsupported method' }
++          return UNSUPPORTED_METHOD
+         },
+         [webrtc()],
+       )
+@@ -165,19 +182,13 @@ export function useWalletSession(activeSafeAddress: string) {
+   }, [activeSigner, pendingRequest, safeInfo, safeLoaded])
+ 
+   const rejectRequest = React.useCallback(() => {
+-    if (requestResolver.current) {
+-      requestResolver.current.reject(new Error('User rejected request'))
+-    }
++    settlePending(USER_REJECTED_REQUEST)
++  }, [settlePending])
+ 
+-    setPendingRequest(null)
+-    requestResolver.current = null
+-  }, [])
+-
+-  const closeSession = React.useCallback(async () => {
+-    await session?.close().catch(() => undefined)
++  const closeSession = React.useCallback(() => {
+     setSession(null)
+     setStatus('idle')
+-  }, [session])
++  }, [])
+ 
+   return {
+     connectionUrl,
+-- 
+2.55.0
+

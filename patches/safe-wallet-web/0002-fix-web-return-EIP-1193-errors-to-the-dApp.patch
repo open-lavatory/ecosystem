@@ -1,0 +1,112 @@
+From b56b93ffb3caea41f581c82809c65fe070e97af1 Mon Sep 17 00:00:00 2001
+From: Luc <luc@lucemans.nl>
+Date: Wed, 28 Oct 2026 18:05:26 +0100
+Subject: [PATCH] fix(web): return EIP-1193 errors to the dApp
+
+- Answer with a bare { result } or { error: { code, message } }. The
+  released @openlv/provider unwraps both, and the request carries no id.
+- Codes 4001, 4100, 4200, 4900 and 4901 get their fixed EIP-1193 text.
+  Any other error is answered with -32603 "Internal error", so no
+  wallet-side message reaches the dApp.
+- Catch connectSession and connect failures.
+---
+ .../src/features/openlv/OpenLVWidgetUI.tsx    | 76 ++++++++++++-------
+ 1 file changed, 48 insertions(+), 28 deletions(-)
+
+diff --git a/apps/web/src/features/openlv/OpenLVWidgetUI.tsx b/apps/web/src/features/openlv/OpenLVWidgetUI.tsx
+index a0785e345..bf9685855 100644
+--- a/apps/web/src/features/openlv/OpenLVWidgetUI.tsx
++++ b/apps/web/src/features/openlv/OpenLVWidgetUI.tsx
+@@ -14,6 +14,22 @@ const trimAddress = (address: Address | undefined | null) => {
+ 
+ let session: Session | undefined = undefined
+ 
++const SESSION_ERRORS: Record<number, string> = {
++  4001: 'User Rejected Request',
++  4100: 'Unauthorized',
++  4200: 'Unsupported Method',
++  4900: 'Disconnected',
++  4901: 'Chain Disconnected',
++}
++
++const toSessionResponse = (response: { result: unknown } | { error: { code: number } }) => {
++  if (!('error' in response)) return { result: response.result }
++
++  const message = SESSION_ERRORS[response.error.code]
++
++  return { error: message ? { code: response.error.code, message } : { code: -32603, message: 'Internal error' } }
++}
++
+ const ConnectComponent = () => {
+   const [url, setUrl] = useState<string | undefined>(undefined)
+ 
+@@ -41,34 +57,38 @@ const ConnectComponent = () => {
+ 
+             console.log('connecting to ', url)
+ 
+-            session = await connectSession(
+-              url,
+-              async (message) => {
+-                console.log('received message', message)
+-                const { method, params } = message as { method: string; params: string[] }
+-
+-                console.log('method', method)
+-                console.log('params', params)
+-
+-                const response = await provider.request(
+-                  Number.parseInt(Math.random().toString(36).slice(2), 10), // request ID
+-                  { method, params },
+-                  {
+-                    url: 'openlv-app',
+-                    name: 'OpenLV',
+-                    description: 'OpenLV Integration',
+-                    iconUrl: '',
+-                  },
+-                )
+-                console.log('response', response)
+-                return response
+-              },
+-              [webrtc()],
+-            )
+-            console.log('session', session)
+-
+-            await session.connect()
+-            console.log('session connected', session)
++            try {
++              session = await connectSession(
++                url,
++                async (message) => {
++                  console.log('received message', message)
++                  const { method, params } = message as { method: string; params: string[] }
++
++                  console.log('method', method)
++                  console.log('params', params)
++
++                  const response = await provider.request(
++                    Number.parseInt(Math.random().toString(36).slice(2), 10), // request ID
++                    { method, params },
++                    {
++                      url: 'openlv-app',
++                      name: 'OpenLV',
++                      description: 'OpenLV Integration',
++                      iconUrl: '',
++                    },
++                  )
++                  console.log('response', response)
++                  return toSessionResponse(response)
++                },
++                [webrtc()],
++              )
++              console.log('session', session)
++
++              await session.connect()
++              console.log('session connected', session)
++            } catch (error) {
++              console.error('failed to connect', error)
++            }
+           }}
+         >
+           Connect
+-- 
+2.55.0
+
