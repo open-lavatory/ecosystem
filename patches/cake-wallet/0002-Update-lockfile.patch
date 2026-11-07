@@ -1,0 +1,46 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Luc <luc@lucemans.nl>
+Date: Fri, 30 Oct 2026 04:33:46 +0100
+Subject: [PATCH] Update lockfile
+
+---
+ pubspec.lock | 12 ++++++++++--
+ 1 file changed, 10 insertions(+), 2 deletions(-)
+
+diff --git a/pubspec.lock b/pubspec.lock
+index a3b0b22..3aba007 100644
+--- a/pubspec.lock
++++ b/pubspec.lock
+@@ -2188,6 +2188,14 @@ packages:
+       url: "https://github.com/cake-tech/on_chain.git"
+     source: git
+     version: "3.7.0"
++  openlv:
++    dependency: "direct main"
++    description:
++      name: openlv
++      sha256: "5ce737a679557a7ca23add896a296b1b6776b4a1ce46ea679001ee7dedd4dc15"
++      url: "https://pub.dev"
++    source: hosted
++    version: "0.0.2"
+   package_config:
+     dependency: "direct overridden"
+     description:
+@@ -2459,7 +2467,7 @@ packages:
+     source: git
+     version: "5.0.5"
+   progressive_blur:
+-    dependency: "direct main"
++    dependency: "direct overridden"
+     description:
+       path: "."
+       ref: "6ec8d0ccf46b1629a46ab68f31e26df489bac958"
+@@ -3488,7 +3496,7 @@ packages:
+     source: git
+     version: "6.5.0"
+   yaml:
+-    dependency: "direct main"
++    dependency: "direct overridden"
+     description:
+       path: "pkgs/yaml"
+       ref: "27f829e3752382beae9deb1e87029f9ed52ef32e"
