@@ -1,0 +1,462 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Luc <luc@lucemans.nl>
+Date: Sat, 7 Nov 2026 19:35:52 +0100
+Subject: [PATCH] Update lockfile
+
+---
+ pnpm-lock.yaml | 267 +++++++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 267 insertions(+)
+
+diff --git a/pnpm-lock.yaml b/pnpm-lock.yaml
+index 7ccdafe0..9b2b2398 100644
+--- a/pnpm-lock.yaml
++++ b/pnpm-lock.yaml
+@@ -451,6 +451,9 @@ importers:
+ 
+   packages/rainbowkit:
+     dependencies:
++      '@openlv/connector':
++        specifier: 0.2.2
++        version: 0.2.2(@wagmi/core@2.22.1(@tanstack/query-core@5.59.0)(@types/react@19.2.14)(immer@9.0.21)(react@19.2.5)(typescript@5.9.3)(use-sync-external-store@1.4.0(react@19.2.5))(viem@2.38.0(bufferutil@4.0.9)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@3.25.76)))(bufferutil@4.0.9)(tailwindcss@4.2.4)(typescript@5.9.3)(utf-8-validate@5.0.10)(viem@2.38.0(bufferutil@4.0.9)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@3.25.76))(zod@3.25.76)
+       '@tanstack/react-query':
+         specifier: '>=5.0.0'
+         version: 5.59.0(react@19.2.5)
+@@ -3551,6 +3554,30 @@ packages:
+   '@open-draft/until@2.1.0':
+     resolution: {integrity: sha512-U69T3ItWHvLwGg5eJ0n3I62nWuE6ilHlmz7zM0npLBRvPRd7e6NYmg54vvRtP5mZG7kZqZCFVdsTWo7BPtBujg==}
+ 
++  '@openlv/connector@0.2.2':
++    resolution: {integrity: sha512-vJqJ0WxsV9lCNZ1KKjzknbq4JPQ5QhMiFRYnuLKRqfgZnVNfP27HORU91yIpyUDuDyoqKgzPISFGVlz9IwnB6w==}
++    peerDependencies:
++      '@wagmi/core': '3'
++      viem: '2'
++
++  '@openlv/core@0.3.0':
++    resolution: {integrity: sha512-NAGihiOzdqqB5vp7LkLho2GGBKrcRTdc8qK+EQetu54HHG1oyzHFMUuq1sXWqBWL0GyD1C+igMFdM0R1VzLPGA==}
++
++  '@openlv/modal@0.2.2':
++    resolution: {integrity: sha512-k4pZ6pNy+Td8mPwAMQEIDGTmd2b096FUVRili1bGEN/sVc5ZKVYHY4RzCaOhOngFb25tRGi7IWwCgKolcMnpUA==}
++
++  '@openlv/provider@0.3.1':
++    resolution: {integrity: sha512-GZvQFMMqa13I7N7LjGGLlnZQWahWfU8pkiXzu7cFlZCbUzJvc4v2LnyAOKH1Fs1L9eLnqAXMj3YzO/shAcJNbg==}
++
++  '@openlv/session@0.3.1':
++    resolution: {integrity: sha512-EbokMXfFPXN6WLecpuKouaWii8QUxQApJusiHzwlXdfJXNDrkXT64PfoM5Fjwbm0YSSkKI/53srOWoi+aS1JXA==}
++
++  '@openlv/signaling@0.3.1':
++    resolution: {integrity: sha512-KGtgZbEbsfA1EG5XKiP1BRVrhp2TILXlJef/CrUjytykGZwq/XzG9qtXxTFSFEmW3atpYC2Us5gU064SZamNVg==}
++
++  '@openlv/transport@0.3.0':
++    resolution: {integrity: sha512-zQIJFwzxWYhtUPsBHm50PR2pIDOydnX4FrkI/+vr/gT+W7vZxD25PIICZPqzYGnqBIfQcX07T94MlGul3T4rAg==}
++
+   '@opentelemetry/api-logs@0.57.2':
+     resolution: {integrity: sha512-uIX52NnTM0iBh84MShlpouI7UKqkZ7MrUszTmaypHBu4r7NofznSnQRfJ+uUeDtQDj6w8eFGg5KBLDAwAPz1+A==}
+     engines: {node: '>=14'}
+@@ -6577,6 +6604,9 @@ packages:
+   cjs-module-lexer@1.4.0:
+     resolution: {integrity: sha512-N1NGmowPlGBLsOZLPvm48StN04V4YvQRL0i6b7ctrVY3epjP/ct7hFLOItz6pDIvRjwpfPxi52a2UWV2ziir8g==}
+ 
++  classnames@2.5.1:
++    resolution: {integrity: sha512-saHYOzhIQs6wy2sVxTM6bUDsQO4F50V9RQ22qBpEdCW+I+/Wmke2HOl6lS6dTpdxVhb88/I6+Hs+438c3lfUow==}
++
+   clean-css@5.3.3:
+     resolution: {integrity: sha512-D5J+kHaVb/wKSFcyyV75uCn8fiY4sV38XJoe4CUyGQ+mOU/fMVYUdH1hJC+CJQ5uY3EnW27SbJYS4X8BiLrAFg==}
+     engines: {node: '>= 10.0'}
+@@ -6712,6 +6742,9 @@ packages:
+   compare-func@2.0.0:
+     resolution: {integrity: sha512-zHig5N+tPWARooBnb0Zx1MFcdfpyJrfTJ3Y5L+IFvUm8rM74hHz66z0gw0x4tijh5CorKkKUCnW82R2vmpeCRA==}
+ 
++  component-register@0.8.8:
++    resolution: {integrity: sha512-djhwcxjY+X9dacaYUEOkOm7tda8uOEDiMDigWysu3xv54M8o6XDlsjR1qt5Y8QLGiKg51fqXFIR2HUTmt9ys0Q==}
++
+   compressible@2.0.18:
+     resolution: {integrity: sha512-AF3r7P5dWxL8MxyITRMlORQNaOA2IkAFaTr4k7BUumjPtRpGDTZpl0Pb1XCO6JeDCBdp126Cgs9sMxqSjgYyRg==}
+     engines: {node: '>= 0.6'}
+@@ -8235,6 +8268,10 @@ packages:
+     resolution: {integrity: sha512-5v6yZd4JK3eMI3FqqCouswVqwugaA9r4dNZB1wwcmrD02QkV5H0y7XBQW8QwQqEaZY1pM9aqORSORhJRdNK44Q==}
+     engines: {node: '>=6.0'}
+ 
++  gun@0.2020.1241:
++    resolution: {integrity: sha512-rmGqLuJj4fAuZ/0lddCvXHbENPkEnBOBYpq+kXHrwQ5RdNtQ5p0Io99lD1qUXMFmtwNacQ/iqo3VTmjmMyAYZg==}
++    engines: {node: '>=0.8.4'}
++
+   gunzip-maybe@1.4.2:
+     resolution: {integrity: sha512-4haO1M4mLO91PW57BMsDFf75UmwoRX0GkdD+Faw+Lr+r/OZrOCS0pIBwOL1xCKQqnQzbNFGgK2V2CpBUPeFNTw==}
+     hasBin: true
+@@ -9433,6 +9470,11 @@ packages:
+     resolution: {integrity: sha512-jumlc0BIUrS3qJGgIkWZsyfAM7NCWiBcCDhnd+3NNM5KbBmLTgHVfWBcg6W+rLUsIpzpERPsvwUP7CckAQSOoA==}
+     engines: {node: '>=12'}
+ 
++  lucide-solid@0.574.0:
++    resolution: {integrity: sha512-fa447+mAsv7nSRgHZLfV7zurB2aFq8ih+q+MqzrZo3ljp6NqMkPXNp+vFXUCaoqTrVQ8N/b3oFcxAjqLKvsD5A==}
++    peerDependencies:
++      solid-js: ^1.4.7
++
+   lz-string@1.5.0:
+     resolution: {integrity: sha512-h5bgJWpxJNswbU7qCrV0tIKQCaS3blPDrqKWx+QxzuzL1zGUzij9XCWLrSLsJPu5t+eWA/ycetzYAO5IOMcWAQ==}
+     hasBin: true
+@@ -10241,6 +10283,14 @@ packages:
+       typescript:
+         optional: true
+ 
++  ox@0.9.17:
++    resolution: {integrity: sha512-rKAnhzhRU3Xh3hiko+i1ZxywZ55eWQzeS/Q4HRKLx2PqfHOolisZHErSsJVipGlmQKHW5qwOED/GighEw9dbLg==}
++    peerDependencies:
++      typescript: '>=5.4.0'
++    peerDependenciesMeta:
++      typescript:
++        optional: true
++
+   ox@0.9.6:
+     resolution: {integrity: sha512-8SuCbHPvv2eZLYXrNmC0EC12rdzXQLdhnOMlHDW2wiCPLxBrOOJwX5L5E61by+UjTPOryqQiRSnjIKCI+GykKg==}
+     peerDependencies:
+@@ -11114,6 +11164,10 @@ packages:
+   qr@0.4.2:
+     resolution: {integrity: sha512-wCv4rt7IcPNGT0J8JiTBHx7YrZzYuzpof38y/MFYd5Sp7OTyAFYL1e110In8PrAG/ffIOVl1ha3joJ2zpYxKMQ==}
+ 
++  qr@0.6.0:
++    resolution: {integrity: sha512-P23VoX7SipHALdiIYG+D+LT/6n22dNKwV92FAb3d+Nlki/5WisSsfLt0UDFz2XEBtuwrECTznvu+chKKFCSYhA==}
++    engines: {node: '>= 20.19.0'}
++
+   qrcode@1.5.3:
+     resolution: {integrity: sha512-puyri6ApkEHYiVl4CFzo1tDkAZ+ATcnbJrJ6RiBM1Fhctdn/ix9MTE3hRph33omisEbC/2fcfemsseiKgBPKZg==}
+     engines: {node: '>=10.13.0'}
+@@ -11624,6 +11678,16 @@ packages:
+   serialize-javascript@6.0.2:
+     resolution: {integrity: sha512-Saa1xPByTTq2gdeFZYLLo+RFE35NHZkAbqZeWNd3BpzppeVisAqpDjcp8dyf6uIvEqJRd46jemmyA4iFIeVk8g==}
+ 
++  seroval-plugins@1.6.12:
++    resolution: {integrity: sha512-+reiwp/lYxiyctSrdvX7OQ1YLrcbWYgBiZrhSFL+V43b0/DGRLNVSDyZINbQe+tWplPOI2fw2dPrdv6hcc09kQ==}
++    engines: {node: '>=10'}
++    peerDependencies:
++      seroval: ^1.0
++
++  seroval@1.6.12:
++    resolution: {integrity: sha512-CqbIVfk/7GL3ITwZI55lcPbpQbjHZ2DD5cUj4iH7E9YsCfHNJV1mx7yNp86Z84w5IpmkZZS/2s5vPOWmVWSdQg==}
++    engines: {node: '>=10'}
++
+   serve-index@1.9.1:
+     resolution: {integrity: sha512-pXHfKNP4qujrtteMrSBb0rc8HJ9Ms/GrXwcUtUtD5s4ewDJI8bT3Cz2zTVRMKtri49pLx2e0Ya8ziP5Ya2pZZw==}
+     engines: {node: '>= 0.8.0'}
+@@ -11727,6 +11791,19 @@ packages:
+   sockjs@0.3.24:
+     resolution: {integrity: sha512-GJgLTZ7vYb/JtPSSZ10hsOYIvEYsjbNU+zPdIHcUaWVNUEPivzxku31865sSSud0Da0W4lEeOPlmw93zLQchuQ==}
+ 
++  solid-element@1.9.2:
++    resolution: {integrity: sha512-+6bK9YGAf47lrwWyTFXUVKCkKTkof3bn6yxknHJPAE5MGSCvx4DJH1KE3ltUjIXeDWhS2gU5yjpynkH709+Xag==}
++    peerDependencies:
++      solid-js: ^1.9.14
++
++  solid-icons@1.2.0:
++    resolution: {integrity: sha512-yjQxWQMi9l19P5Af9vjsvalTMDFPDL4XD6etrUdNxNVhFp1bMYF0SFwUa5VYDfJ7u0SF3Qkz/F7BZxqcLUwklw==}
++    peerDependencies:
++      solid-js: '*'
++
++  solid-js@1.9.18:
++    resolution: {integrity: sha512-CHGO5YFk6Y9m/1YSxVtKnXfrW7JD3Tmof8HmR4z6TmCPsS8efo8LnzIR8CQh3cUvffqYm6DWyBFfk8dQw1CNQQ==}
++
+   sonic-boom@2.8.0:
+     resolution: {integrity: sha512-kuonw1YOYYNOve5iHdSahXPOK49GqwA+LZhI6Wz/l0rP57iKyXXIHaRagOBHAPmGwJC6od2Z9zgvZ5loSgMlVg==}
+ 
+@@ -12045,6 +12122,18 @@ packages:
+     resolution: {integrity: sha512-yEFYrVhod+hdNyx7g5Bnkkb0G6si8HJurOoOEgC8B/O0uXLHlaey/65KRv6cuWBNhBgHKAROVpc7QyYqE5gFng==}
+     engines: {node: '>=20'}
+ 
++  tailwind-variants@3.3.1:
++    resolution: {integrity: sha512-4pAvwUtM4HKBiRZftncAbpn6V9Hhwoa5Fl7O2u5zbp7Z5Cvu+/o/6+176WY3WCEES209543quG8zFIcXCsc5Jw==}
++    engines: {node: '>=16.9.x', pnpm: '>=7.x'}
++    peerDependencies:
++      tailwind-merge: '>=3.0.0'
++      tailwindcss: '*'
++    peerDependenciesMeta:
++      tailwind-merge:
++        optional: true
++      tailwindcss:
++        optional: true
++
+   tailwindcss@3.4.10:
+     resolution: {integrity: sha512-KWZkVPm7yJRhdu4SRSl9d4AK2wM3a50UsvgHZO7xY77NQr2V+fIrEuoDGQcbvswWvFGbS2f6e+jC/6WJm1Dl0w==}
+     engines: {node: '>=14.0.0'}
+@@ -13015,6 +13104,9 @@ packages:
+     resolution: {integrity: sha512-OqedPIGOfsDlo31UNwYbCFMSaO9m9G/0faIHj5/dZFDMFqPTcx6UwqyOy3COEaEOg/9VsGIpdqn62W5KhoKSpg==}
+     engines: {node: '>=0.8.0'}
+ 
++  websocket-mqtt@0.0.7:
++    resolution: {integrity: sha512-+33fT52HJ3IlJdybH/em5TNmswwxcDCSyubernwVCaXKf7/RCEg95Lr2U51Cgev1/dqi9dUgOyozhUK/09e4IA==}
++
+   whatwg-encoding@1.0.5:
+     resolution: {integrity: sha512-b5lim54JOPN9HtzvK9HFXvBma/rnfFeqsic0hSpjtDbVxR3dJKLc+KB4V6GgiGOvl7CY/KNh8rxSo9DKQrnUEw==}
+ 
+@@ -13288,6 +13380,9 @@ packages:
+   zod@4.1.11:
+     resolution: {integrity: sha512-WPsqwxITS2tzx1bzhIKsEs19ABD5vmCVa4xBo2tq/SrV4RNZtfws1EnCWQXM6yh8bD08a1idvkB5MZSBiZsjwg==}
+ 
++  zod@4.6.7:
++    resolution: {integrity: sha512-g8W2D2kU6a8untc053fX1uVBKzM7yqAxW/3zwk83+6RyF2+SKOuV+c0wBDhUwzV1PaGapmZH+rmcUzPf+3CGwg==}
++
+   zustand@5.0.0:
+     resolution: {integrity: sha512-LE+VcmbartOPM+auOjCCLQOsQ05zUTp8RkgwRzefUk+2jISdMMFnxvyTjA4YNWr5ZGXYbVsEMZosttuxUBkojQ==}
+     engines: {node: '>=12.20.0'}
+@@ -16433,6 +16528,95 @@ snapshots:
+ 
+   '@open-draft/until@2.1.0': {}
+ 
++  '@openlv/connector@0.2.2(@wagmi/core@2.22.1(@tanstack/query-core@5.59.0)(@types/react@19.2.14)(immer@9.0.21)(react@19.2.5)(typescript@5.9.3)(use-sync-external-store@1.4.0(react@19.2.5))(viem@2.38.0(bufferutil@4.0.9)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@3.25.76)))(bufferutil@4.0.9)(tailwindcss@4.2.4)(typescript@5.9.3)(utf-8-validate@5.0.10)(viem@2.38.0(bufferutil@4.0.9)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@3.25.76))(zod@3.25.76)':
++    dependencies:
++      '@openlv/core': 0.3.0
++      '@openlv/modal': 0.2.2(bufferutil@4.0.9)(tailwindcss@4.2.4)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@3.25.76)
++      '@openlv/provider': 0.3.1(bufferutil@4.0.9)(typescript@5.9.3)(utf-8-validate@5.0.10)
++      '@wagmi/core': 2.22.1(@tanstack/query-core@5.59.0)(@types/react@19.2.14)(immer@9.0.21)(react@19.2.5)(typescript@5.9.3)(use-sync-external-store@1.4.0(react@19.2.5))(viem@2.38.0(bufferutil@4.0.9)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@3.25.76))
++      eventemitter3: 5.0.4
++      viem: 2.38.0(bufferutil@4.0.9)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@3.25.76)
++    transitivePeerDependencies:
++      - bufferutil
++      - tailwind-merge
++      - tailwindcss
++      - typescript
++      - utf-8-validate
++      - zod
++
++  '@openlv/core@0.3.0':
++    dependencies:
++      '@noble/ciphers': 1.3.0
++      '@noble/curves': 1.9.7
++      eventemitter3: 5.0.4
++
++  '@openlv/modal@0.2.2(bufferutil@4.0.9)(tailwindcss@4.2.4)(typescript@5.9.3)(utf-8-validate@5.0.10)(zod@3.25.76)':
++    dependencies:
++      '@openlv/core': 0.3.0
++      '@openlv/provider': 0.3.1(bufferutil@4.0.9)(typescript@5.9.3)(utf-8-validate@5.0.10)
++      '@openlv/session': 0.3.1(bufferutil@4.0.9)(utf-8-validate@5.0.10)
++      '@openlv/signaling': 0.3.1(bufferutil@4.0.9)(utf-8-validate@5.0.10)
++      classnames: 2.5.1
++      eventemitter3: 5.0.4
++      lucide-solid: 0.574.0(solid-js@1.9.18)
++      ox: 0.9.17(typescript@5.9.3)(zod@3.25.76)
++      qr: 0.6.0
++      solid-element: 1.9.2(solid-js@1.9.18)
++      solid-icons: 1.2.0(solid-js@1.9.18)
++      solid-js: 1.9.18
++      tailwind-variants: 3.3.1(tailwindcss@4.2.4)
++    transitivePeerDependencies:
++      - bufferutil
++      - tailwind-merge
++      - tailwindcss
++      - typescript
++      - utf-8-validate
++      - zod
++
++  '@openlv/provider@0.3.1(bufferutil@4.0.9)(typescript@5.9.3)(utf-8-validate@5.0.10)':
++    dependencies:
++      '@openlv/core': 0.3.0
++      '@openlv/session': 0.3.1(bufferutil@4.0.9)(utf-8-validate@5.0.10)
++      '@openlv/signaling': 0.3.1(bufferutil@4.0.9)(utf-8-validate@5.0.10)
++      '@openlv/transport': 0.3.0
++      ox: 0.9.17(typescript@5.9.3)(zod@4.6.7)
++      zod: 4.6.7
++    transitivePeerDependencies:
++      - bufferutil
++      - typescript
++      - utf-8-validate
++
++  '@openlv/session@0.3.1(bufferutil@4.0.9)(utf-8-validate@5.0.10)':
++    dependencies:
++      '@openlv/core': 0.3.0
++      '@openlv/signaling': 0.3.1(bufferutil@4.0.9)(utf-8-validate@5.0.10)
++      '@openlv/transport': 0.3.0
++      eventemitter3: 5.0.4
++      globals: 16.4.0
++      ts-pattern: 5.4.0
++    transitivePeerDependencies:
++      - bufferutil
++      - utf-8-validate
++
++  '@openlv/signaling@0.3.1(bufferutil@4.0.9)(utf-8-validate@5.0.10)':
++    dependencies:
++      '@openlv/core': 0.3.0
++      eventemitter3: 5.0.4
++      globals: 16.4.0
++      gun: 0.2020.1241(bufferutil@4.0.9)(utf-8-validate@5.0.10)
++      ts-pattern: 5.4.0
++      websocket-mqtt: 0.0.7
++    transitivePeerDependencies:
++      - bufferutil
++      - utf-8-validate
++
++  '@openlv/transport@0.3.0':
++    dependencies:
++      '@openlv/core': 0.3.0
++      eventemitter3: 5.0.4
++      globals: 16.4.0
++      ts-pattern: 5.4.0
++
+   '@opentelemetry/api-logs@0.57.2':
+     dependencies:
+       '@opentelemetry/api': 1.9.0
+@@ -19895,6 +20079,11 @@ snapshots:
+       typescript: 5.9.3
+       zod: 4.1.11
+ 
++  abitype@1.1.0(typescript@5.9.3)(zod@4.6.7):
++    optionalDependencies:
++      typescript: 5.9.3
++      zod: 4.6.7
++
+   abort-controller@3.0.0:
+     dependencies:
+       event-target-shim: 5.0.1
+@@ -20631,6 +20820,8 @@ snapshots:
+ 
+   cjs-module-lexer@1.4.0: {}
+ 
++  classnames@2.5.1: {}
++
+   clean-css@5.3.3:
+     dependencies:
+       source-map: 0.6.1
+@@ -20744,6 +20935,8 @@ snapshots:
+       array-ify: 1.0.0
+       dot-prop: 5.3.0
+ 
++  component-register@0.8.8: {}
++
+   compressible@2.0.18:
+     dependencies:
+       mime-db: 1.53.0
+@@ -22718,6 +22911,15 @@ snapshots:
+       section-matter: 1.0.0
+       strip-bom-string: 1.0.0
+ 
++  gun@0.2020.1241(bufferutil@4.0.9)(utf-8-validate@5.0.10):
++    dependencies:
++      ws: 7.5.10(bufferutil@4.0.9)(utf-8-validate@5.0.10)
++    optionalDependencies:
++      '@peculiar/webcrypto': 1.5.0
++    transitivePeerDependencies:
++      - bufferutil
++      - utf-8-validate
++
+   gunzip-maybe@1.4.2:
+     dependencies:
+       browserify-zlib: 0.1.4
+@@ -24231,6 +24433,10 @@ snapshots:
+ 
+   lru-cache@7.18.3: {}
+ 
++  lucide-solid@0.574.0(solid-js@1.9.18):
++    dependencies:
++      solid-js: 1.9.18
++
+   lz-string@1.5.0: {}
+ 
+   magic-string@0.25.9:
+@@ -25469,6 +25675,36 @@ snapshots:
+     transitivePeerDependencies:
+       - zod
+ 
++  ox@0.9.17(typescript@5.9.3)(zod@3.25.76):
++    dependencies:
++      '@adraffy/ens-normalize': 1.11.0
++      '@noble/ciphers': 1.3.0
++      '@noble/curves': 1.9.1
++      '@noble/hashes': 1.8.0
++      '@scure/bip32': 1.7.0
++      '@scure/bip39': 1.6.0
++      abitype: 1.1.0(typescript@5.9.3)(zod@3.25.76)
++      eventemitter3: 5.0.1
++    optionalDependencies:
++      typescript: 5.9.3
++    transitivePeerDependencies:
++      - zod
++
++  ox@0.9.17(typescript@5.9.3)(zod@4.6.7):
++    dependencies:
++      '@adraffy/ens-normalize': 1.11.0
++      '@noble/ciphers': 1.3.0
++      '@noble/curves': 1.9.1
++      '@noble/hashes': 1.8.0
++      '@scure/bip32': 1.7.0
++      '@scure/bip39': 1.6.0
++      abitype: 1.1.0(typescript@5.9.3)(zod@4.6.7)
++      eventemitter3: 5.0.1
++    optionalDependencies:
++      typescript: 5.9.3
++    transitivePeerDependencies:
++      - zod
++
+   ox@0.9.6(typescript@5.9.3)(zod@3.22.4):
+     dependencies:
+       '@adraffy/ens-normalize': 1.11.0
+@@ -26383,6 +26619,8 @@ snapshots:
+ 
+   qr@0.4.2: {}
+ 
++  qr@0.6.0: {}
++
+   qrcode@1.5.3:
+     dependencies:
+       dijkstrajs: 1.0.3
+@@ -27106,6 +27344,12 @@ snapshots:
+     dependencies:
+       randombytes: 2.1.0
+ 
++  seroval-plugins@1.6.12(seroval@1.6.12):
++    dependencies:
++      seroval: 1.6.12
++
++  seroval@1.6.12: {}
++
+   serve-index@1.9.1:
+     dependencies:
+       accepts: 1.3.8
+@@ -27269,6 +27513,21 @@ snapshots:
+       uuid: 8.3.2
+       websocket-driver: 0.7.4
+ 
++  solid-element@1.9.2(solid-js@1.9.18):
++    dependencies:
++      component-register: 0.8.8
++      solid-js: 1.9.18
++
++  solid-icons@1.2.0(solid-js@1.9.18):
++    dependencies:
++      solid-js: 1.9.18
++
++  solid-js@1.9.18:
++    dependencies:
++      csstype: 3.2.3
++      seroval: 1.6.12
++      seroval-plugins: 1.6.12(seroval@1.6.12)
++
+   sonic-boom@2.8.0:
+     dependencies:
+       atomic-sleep: 1.0.0
+@@ -27610,6 +27869,10 @@ snapshots:
+ 
+   tagged-tag@1.0.0: {}
+ 
++  tailwind-variants@3.3.1(tailwindcss@4.2.4):
++    optionalDependencies:
++      tailwindcss: 4.2.4
++
+   tailwindcss@3.4.10:
+     dependencies:
+       '@alloc/quick-lru': 5.2.0
+@@ -28616,6 +28879,8 @@ snapshots:
+ 
+   websocket-extensions@0.1.4: {}
+ 
++  websocket-mqtt@0.0.7: {}
++
+   whatwg-encoding@1.0.5:
+     dependencies:
+       iconv-lite: 0.4.24
+@@ -28962,6 +29227,8 @@ snapshots:
+ 
+   zod@4.1.11: {}
+ 
++  zod@4.6.7: {}
++
+   zustand@5.0.0(@types/react@19.2.14)(immer@9.0.21)(react@19.2.5)(use-sync-external-store@1.4.0(react@19.2.5)):
+     optionalDependencies:
+       '@types/react': 19.2.14
