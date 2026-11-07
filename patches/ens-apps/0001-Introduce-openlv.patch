@@ -1,0 +1,197 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Luc <luc@lucemans.nl>
+Date: Tue, 3 Nov 2026 18:15:06 +0100
+Subject: [PATCH] Introduce openlv
+
+---
+ apps/manager/package.json                       |  1 +
+ apps/manager/src/lib/wagmi.ts                   |  2 ++
+ .../stacks/custom/ConnectWalletDialog.tsx       | 17 ++++++++++++++++-
+ .../lib/wallet/stacks/custom/connect.helpers.ts |  1 +
+ apps/portal/package.json                        |  1 +
+ .../src/features/wallet/ConnectWalletDialog.tsx | 17 ++++++++++++++++-
+ .../src/features/wallet/connect.helpers.ts      |  1 +
+ apps/portal/src/lib/wagmi.ts                    |  2 ++
+ 8 files changed, 40 insertions(+), 2 deletions(-)
+
+diff --git a/apps/manager/package.json b/apps/manager/package.json
+index 8a75f1dd5..c6ebb2259 100644
+--- a/apps/manager/package.json
++++ b/apps/manager/package.json
+@@ -50,6 +50,7 @@
+     "@intercom/messenger-js-sdk": "^0.0.20",
+     "@lingui/core": "6.3.0",
+     "@lingui/react": "6.3.0",
++    "@openlv/connector": "0.2.2",
+     "@posthog/react": "catalog:",
+     "@radix-ui/react-alert-dialog": "^1.2.1",
+     "@radix-ui/react-collapsible": "^1.2.1",
+diff --git a/apps/manager/src/lib/wagmi.ts b/apps/manager/src/lib/wagmi.ts
+index 3020861a8..38935214d 100644
+--- a/apps/manager/src/lib/wagmi.ts
++++ b/apps/manager/src/lib/wagmi.ts
+@@ -1,4 +1,5 @@
+ import { WALLETCONNECT_PROJECT_ID } from '@ens-apps/config'
++import { openlv } from '@openlv/connector'
+ import { createPublicClient } from 'viem'
+ import { createConfig } from 'wagmi'
+ import { walletConnect } from 'wagmi/connectors'
+@@ -50,6 +51,7 @@ export const wagmiConfig = createConfig({
+       // light-only, so pin it.
+       qrModalOptions: { themeMode: 'light' },
+     }),
++    openlv(),
+     // Test-only: auto-signing wallet for Playwright/agents. Off in production.
+     ...(isMockWalletEnabled ? [mockConnector] : []),
+   ],
+diff --git a/apps/manager/src/lib/wallet/stacks/custom/ConnectWalletDialog.tsx b/apps/manager/src/lib/wallet/stacks/custom/ConnectWalletDialog.tsx
+index d388b1092..02670c3b0 100644
+--- a/apps/manager/src/lib/wallet/stacks/custom/ConnectWalletDialog.tsx
++++ b/apps/manager/src/lib/wallet/stacks/custom/ConnectWalletDialog.tsx
+@@ -18,6 +18,7 @@ import {
+   isMetaMask,
+   METAMASK_DOWNLOAD_URL,
+   normalizeConnectError,
++  OPENLV_ID,
+   WALLETCONNECT_ID,
+ } from './connect.helpers'
+ import { CoinbaseIcon, MetaMaskIcon, WalletConnectIcon } from './WalletIcons'
+@@ -128,6 +129,7 @@ export const ConnectWalletDialog = ({
+   const metaMask = connectors.find(isMetaMask)
+   const coinbase = connectors.find(isCoinbase)
+   const walletConnect = connectors.find((c) => c.id === WALLETCONNECT_ID)
++  const openLv = connectors.find((c) => c.id === OPENLV_ID)
+ 
+   // Other injected wallets (Rabby, Frame, …), deduped by `uid` so wallets that
+   // share a display name aren't collapsed into one.
+@@ -192,7 +194,8 @@ export const ConnectWalletDialog = ({
+     // WalletConnect renders its own full-screen QR modal, so close ours first
+     // to avoid stacking; injected/Coinbase keep ours open with a per-row
+     // "Connecting…" state and dismiss it only on success.
+-    const usesOwnModal = connector.id === WALLETCONNECT_ID
++    const usesOwnModal =
++      connector.id === WALLETCONNECT_ID || connector.id === OPENLV_ID
+     if (usesOwnModal) {
+       onOpenChange(false)
+     }
+@@ -253,6 +256,18 @@ export const ConnectWalletDialog = ({
+           },
+         ]
+       : []),
++    ...(openLv
++      ? [
++          {
++            key: 'openlv',
++            icon: (
++              <img alt="" className="size-8 rounded-xs" src={openLv.icon} />
++            ),
++            name: openLv.name,
++            connector: openLv,
++          },
++        ]
++      : []),
+   ]
+ 
+   // EIP-6963-discovered injected wallets, shown after the curated ones.
+diff --git a/apps/manager/src/lib/wallet/stacks/custom/connect.helpers.ts b/apps/manager/src/lib/wallet/stacks/custom/connect.helpers.ts
+index e1b938b5f..1fb742607 100644
+--- a/apps/manager/src/lib/wallet/stacks/custom/connect.helpers.ts
++++ b/apps/manager/src/lib/wallet/stacks/custom/connect.helpers.ts
+@@ -5,6 +5,7 @@ import type { Connector } from 'wagmi'
+ // their rdns as the connector id.
+ export const COINBASE_ID = 'coinbaseWalletSDK'
+ export const WALLETCONNECT_ID = 'walletConnect'
++export const OPENLV_ID = 'openLv'
+ export const METAMASK_RDNS = 'io.metamask'
+ export const METAMASK_DOWNLOAD_URL = 'https://metamask.io/download/'
+ 
+diff --git a/apps/portal/package.json b/apps/portal/package.json
+index f574dcef8..628537cfc 100644
+--- a/apps/portal/package.json
++++ b/apps/portal/package.json
+@@ -44,6 +44,7 @@
+     "@ensdomains/ensjs-abi": "catalog:",
+     "@ensdomains/locales": "workspace:^",
+     "@intercom/messenger-js-sdk": "^0.0.20",
++    "@openlv/connector": "0.2.2",
+     "@posthog/react": "catalog:",
+     "@radix-ui/react-accordion": "^1.3.1",
+     "@radix-ui/react-avatar": "^1.3.1",
+diff --git a/apps/portal/src/features/wallet/ConnectWalletDialog.tsx b/apps/portal/src/features/wallet/ConnectWalletDialog.tsx
+index da215e0fa..33658ad44 100644
+--- a/apps/portal/src/features/wallet/ConnectWalletDialog.tsx
++++ b/apps/portal/src/features/wallet/ConnectWalletDialog.tsx
+@@ -19,6 +19,7 @@ import {
+   isMetaMask,
+   METAMASK_DOWNLOAD_URL,
+   normalizeConnectError,
++  OPENLV_ID,
+   WALLETCONNECT_ID,
+ } from './connect.helpers'
+ import { CoinbaseIcon, MetaMaskIcon, WalletConnectIcon } from './WalletIcons'
+@@ -140,6 +141,7 @@ export const ConnectWalletDialog = ({
+   const metaMask = connectors.find(isMetaMask)
+   const coinbase = connectors.find(isCoinbase)
+   const walletConnect = connectors.find((c) => c.id === WALLETCONNECT_ID)
++  const openLv = connectors.find((c) => c.id === OPENLV_ID)
+ 
+   // Other injected wallets (Rabby, Frame, …), deduped by `uid` so wallets that
+   // share a display name aren't collapsed into one.
+@@ -182,7 +184,8 @@ export const ConnectWalletDialog = ({
+     // WalletConnect renders its own full-screen QR modal, so close ours first
+     // to avoid stacking; injected/Coinbase keep ours open with a per-row
+     // "Connecting…" state and dismiss it only on success.
+-    const usesOwnModal = connector.id === WALLETCONNECT_ID
++    const usesOwnModal =
++      connector.id === WALLETCONNECT_ID || connector.id === OPENLV_ID
+     if (usesOwnModal) {
+       onOpenChange(false)
+     }
+@@ -244,6 +247,18 @@ export const ConnectWalletDialog = ({
+           },
+         ]
+       : []),
++    ...(openLv
++      ? [
++          {
++            key: 'openlv',
++            icon: (
++              <img src={openLv.icon} alt="" className="size-8 rounded-xs" />
++            ),
++            name: openLv.name,
++            connector: openLv,
++          },
++        ]
++      : []),
+   ]
+ 
+   // EIP-6963-discovered injected wallets, shown after the curated ones.
+diff --git a/apps/portal/src/features/wallet/connect.helpers.ts b/apps/portal/src/features/wallet/connect.helpers.ts
+index e1b938b5f..1fb742607 100644
+--- a/apps/portal/src/features/wallet/connect.helpers.ts
++++ b/apps/portal/src/features/wallet/connect.helpers.ts
+@@ -5,6 +5,7 @@ import type { Connector } from 'wagmi'
+ // their rdns as the connector id.
+ export const COINBASE_ID = 'coinbaseWalletSDK'
+ export const WALLETCONNECT_ID = 'walletConnect'
++export const OPENLV_ID = 'openLv'
+ export const METAMASK_RDNS = 'io.metamask'
+ export const METAMASK_DOWNLOAD_URL = 'https://metamask.io/download/'
+ 
+diff --git a/apps/portal/src/lib/wagmi.ts b/apps/portal/src/lib/wagmi.ts
+index 144d74eaf..1309adc61 100644
+--- a/apps/portal/src/lib/wagmi.ts
++++ b/apps/portal/src/lib/wagmi.ts
+@@ -1,3 +1,4 @@
++import { openlv } from '@openlv/connector'
+ import { walletConnect } from '@wagmi/connectors'
+ import { match, P } from 'ts-pattern'
+ import { createClient, fallback, http, webSocket } from 'viem'
+@@ -65,6 +66,7 @@ export const wagmiConfig = createConfig({
+           }),
+         ]
+       : []),
++    openlv(),
+     // Test-only: auto-signing wallet for Playwright/agents. Off in production.
+     ...(isMockWalletEnabled ? [mockConnector] : []),
+   ],
