@@ -34,15 +34,15 @@ index 11ab90e0b..c2f6a52d7 100644
    ],
  })
 diff --git a/apps/web/package.json b/apps/web/package.json
-index 93821bc52..24bf2f02d 100644
+index 93821bc52..49736daf7 100644
 --- a/apps/web/package.json
 +++ b/apps/web/package.json
 @@ -71,6 +71,8 @@
      "@ledgerhq/device-transport-kit-speculos": "1.1.0",
      "@ledgerhq/device-transport-kit-web-hid": "^1.2.0",
      "@next/third-parties": "^16.4.2",
-+    "@openlv/session": "^0.3.1",
-+    "@openlv/transport": "^0.3.0",
++    "@openlv/session": "^0.3.3",
++    "@openlv/transport": "^0.3.1",
      "@reduxjs/toolkit": "^2.11.0",
      "@reown/walletkit": "^1.2.7",
      "@safe-global/api-kit": "^5.0.2",

@@ -16,14 +16,14 @@ Subject: [PATCH] Introduce openlv
  create mode 100644 packages/rainbowkit/src/wallets/walletConnectors/openLvWallet/openLvWallet.ts
 
 diff --git a/packages/rainbowkit/package.json b/packages/rainbowkit/package.json
-index 3727913d..da2e711d 100644
+index 3727913d..c505daad 100644
 --- a/packages/rainbowkit/package.json
 +++ b/packages/rainbowkit/package.json
 @@ -67,6 +67,7 @@
      "vitest": "4.1.5"
    },
    "dependencies": {
-+    "@openlv/connector": "0.2.2",
++    "@openlv/connector": "0.2.4",
      "@vanilla-extract/css": "1.20.1",
      "@vanilla-extract/dynamic": "2.1.5",
      "@vanilla-extract/sprinkles": "1.6.5",

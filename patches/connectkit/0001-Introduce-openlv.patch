@@ -34,14 +34,14 @@ index 975deff..8f7184c 100644
    plugins: [react()]
  })
 diff --git a/packages/connectkit/package.json b/packages/connectkit/package.json
-index 1d784e6..141dbdf 100644
+index 1d784e6..8ac67a5 100644
 --- a/packages/connectkit/package.json
 +++ b/packages/connectkit/package.json
 @@ -41,6 +41,7 @@
    ],
    "dependencies": {
      "@aave/account": "^0.2.0",
-+    "@openlv/connector": "0.2.2",
++    "@openlv/connector": "0.2.4",
      "buffer": "^6.0.3",
      "detect-browser": "^5.3.0",
      "framer-motion": "^6.3.11",

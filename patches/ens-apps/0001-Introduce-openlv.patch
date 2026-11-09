@@ -15,14 +15,14 @@ Subject: [PATCH] Introduce openlv
  8 files changed, 40 insertions(+), 2 deletions(-)
 
 diff --git a/apps/manager/package.json b/apps/manager/package.json
-index 8a75f1dd5..c6ebb2259 100644
+index 8a75f1dd5..7ec962a9e 100644
 --- a/apps/manager/package.json
 +++ b/apps/manager/package.json
 @@ -50,6 +50,7 @@
      "@intercom/messenger-js-sdk": "^0.0.20",
      "@lingui/core": "6.3.0",
      "@lingui/react": "6.3.0",
-+    "@openlv/connector": "0.2.2",
++    "@openlv/connector": "0.2.4",
      "@posthog/react": "catalog:",
      "@radix-ui/react-alert-dialog": "^1.2.1",
      "@radix-ui/react-collapsible": "^1.2.1",
@@ -106,14 +106,14 @@ index e1b938b5f..1fb742607 100644
  export const METAMASK_DOWNLOAD_URL = 'https://metamask.io/download/'
  
 diff --git a/apps/portal/package.json b/apps/portal/package.json
-index f574dcef8..628537cfc 100644
+index f574dcef8..4db49f1fe 100644
 --- a/apps/portal/package.json
 +++ b/apps/portal/package.json
 @@ -44,6 +44,7 @@
      "@ensdomains/ensjs-abi": "catalog:",
      "@ensdomains/locales": "workspace:^",
      "@intercom/messenger-js-sdk": "^0.0.20",
-+    "@openlv/connector": "0.2.2",
++    "@openlv/connector": "0.2.4",
      "@posthog/react": "catalog:",
      "@radix-ui/react-accordion": "^1.3.1",
      "@radix-ui/react-avatar": "^1.3.1",

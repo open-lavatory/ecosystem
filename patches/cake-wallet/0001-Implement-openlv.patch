@@ -463,14 +463,14 @@ index 8d77ca9..1adf80e 100644
        ),
      );
 diff --git a/pubspec_base.yaml b/pubspec_base.yaml
-index f9874ae..183b279 100644
+index f9874ae..e995e68 100644
 --- a/pubspec_base.yaml
 +++ b/pubspec_base.yaml
 @@ -137,6 +137,7 @@ dependencies:
        ref: 096865a8c6b89c260beadfec04f7e184c40a3273
    reown_walletkit:
      path: ./scripts/reown_flutter/packages/reown_walletkit
-+  openlv: ^0.0.2
++  openlv: ^0.0.3
    blockchain_utils:
      git:
        url: https://github.com/cake-tech/blockchain_utils
