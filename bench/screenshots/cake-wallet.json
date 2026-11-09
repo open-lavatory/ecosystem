@@ -1,0 +1,11 @@
+{
+  "$schema": "./schema.json",
+  "name": "Cake Wallet",
+  "source": {
+    "patch": "cake-wallet",
+    "build": [
+      "bash {bench}/screenshots/cake-wallet/build.sh"
+    ]
+  },
+  "command": "bash {bench}/screenshots/cake-wallet/capture.sh {out}"
+}

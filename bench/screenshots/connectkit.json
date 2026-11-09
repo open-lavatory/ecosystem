@@ -1,0 +1,20 @@
+{
+  "$schema": "./schema.json",
+  "name": "ConnectKit",
+  "source": {
+    "patch": "connectkit",
+    "build": [
+      "yarn install --immutable",
+      "cd packages/connectkit && node ../../node_modules/rollup/dist/bin/rollup --config rollup.config.prod.js",
+      "cd examples/vite && node ../../node_modules/vite/bin/vite.js build"
+    ],
+    "serve": "cd examples/vite && exec node ../../node_modules/vite/bin/vite.js preview --host 127.0.0.1 --port {port} --strictPort"
+  },
+  "viewport": { "width": 1280, "height": 800 },
+  "steps": [
+    { "goto": "/" },
+    { "click": "role=button[name='Connect Wallet']" },
+    { "visible": "role=dialog >> text=Open Lavatory" }
+  ],
+  "element": "role=dialog >> xpath=.//div[not(@class)]"
+}

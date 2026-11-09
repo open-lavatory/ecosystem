@@ -3,12 +3,14 @@ import { join } from "node:path";
 
 import { z } from "zod";
 
-import { descriptorSchema } from "./descriptor.ts";
+import { descriptorSchema, screenshotSchema } from "./descriptor.ts";
 
-const schemaPath = join(import.meta.dirname, "..", "apps", "descriptor.schema.json");
+const benchDirectory = join(import.meta.dirname, "..");
+const schemas = [
+  { path: join(benchDirectory, "apps", "descriptor.schema.json"), schema: descriptorSchema },
+  { path: join(benchDirectory, "screenshots", "schema.json"), schema: screenshotSchema },
+].map(({ path, schema }) => ({ path, text: `${JSON.stringify(z.toJSONSchema(schema, { io: "input" }), undefined, 2)}\n` }));
 
-const schemaText = `${JSON.stringify(z.toJSONSchema(descriptorSchema, { io: "input" }), undefined, 2)}\n`;
+export const isSchemaCurrent = () => schemas.every(({ path, text }) => readFileSync(path, "utf8") === text);
 
-export const isSchemaCurrent = () => readFileSync(schemaPath, "utf8") === schemaText;
-
-if (import.meta.main) writeFileSync(schemaPath, schemaText);
+if (import.meta.main) for (const { path, text } of schemas) writeFileSync(path, text);

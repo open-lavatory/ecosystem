@@ -1,0 +1,276 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "anyOf": [
+    {
+      "type": "object",
+      "properties": {
+        "$schema": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "source": {
+          "type": "object",
+          "properties": {
+            "patch": {
+              "type": "string",
+              "pattern": "^[a-z0-9-]+$",
+              "description": "A directory in patches/; commands run in its devshell on the patched source, {bench} expands to bench/"
+            },
+            "build": {
+              "minItems": 1,
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "Shell commands run once per patch revision"
+            },
+            "serve": {
+              "type": "string",
+              "format": "includes",
+              "pattern": "\\{port\\}",
+              "description": "Shell command that serves the build on {port}"
+            }
+          },
+          "required": [
+            "patch",
+            "build",
+            "serve"
+          ],
+          "additionalProperties": false
+        },
+        "viewport": {
+          "type": "object",
+          "properties": {
+            "width": {
+              "type": "integer",
+              "exclusiveMinimum": 0,
+              "maximum": 9007199254740991
+            },
+            "height": {
+              "type": "integer",
+              "exclusiveMinimum": 0,
+              "maximum": 9007199254740991
+            }
+          },
+          "required": [
+            "width",
+            "height"
+          ],
+          "additionalProperties": false
+        },
+        "mobile": {
+          "description": "Touch and mobile emulation",
+          "type": "boolean"
+        },
+        "steps": {
+          "minItems": 1,
+          "type": "array",
+          "items": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "goto": {
+                    "type": "string",
+                    "format": "starts_with",
+                    "pattern": "^\\/.*",
+                    "description": "Path on the app origin"
+                  }
+                },
+                "required": [
+                  "goto"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "click": {
+                    "type": "string",
+                    "minLength": 1,
+                    "description": "Playwright selector; {account0} and {account1} expand to the test wallet's addresses"
+                  }
+                },
+                "required": [
+                  "click"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "select": {
+                    "type": "string",
+                    "minLength": 1,
+                    "description": "Playwright selector; {account0} and {account1} expand to the test wallet's addresses"
+                  },
+                  "option": {
+                    "type": "string",
+                    "minLength": 1,
+                    "description": "Value or label of the option to pick"
+                  }
+                },
+                "required": [
+                  "select",
+                  "option"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "visible": {
+                    "type": "string",
+                    "minLength": 1,
+                    "description": "Wait until this selector is visible"
+                  }
+                },
+                "required": [
+                  "visible"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "hidden": {
+                    "type": "string",
+                    "minLength": 1,
+                    "description": "Wait until this selector is hidden or gone"
+                  }
+                },
+                "required": [
+                  "hidden"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "fill": {
+                    "type": "string",
+                    "minLength": 1,
+                    "description": "Playwright selector; {account0} and {account1} expand to the test wallet's addresses"
+                  },
+                  "value": {
+                    "type": "string",
+                    "description": "Text to type, shown from its start; {openlv} expands to a fresh connection URL from the bench dApp"
+                  }
+                },
+                "required": [
+                  "fill",
+                  "value"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "tap": {
+                    "type": "string",
+                    "minLength": 1,
+                    "description": "Dispatch a click on the first visible match, for react-native-web views that another layer covers"
+                  }
+                },
+                "required": [
+                  "tap"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "style": {
+                    "type": "string",
+                    "description": "CSS added to the page"
+                  }
+                },
+                "required": [
+                  "style"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "send": {
+                    "type": "string",
+                    "description": "JSON-RPC method the bench dApp sends once its session is connected, without waiting for the answer"
+                  },
+                  "params": {
+                    "type": "array",
+                    "items": {}
+                  }
+                },
+                "required": [
+                  "send",
+                  "params"
+                ],
+                "additionalProperties": false
+              }
+            ]
+          },
+          "description": "Steps to the openlv screen, run once per color scheme"
+        },
+        "element": {
+          "description": "Crop the shot to this element",
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "required": [
+        "name",
+        "source",
+        "viewport",
+        "steps"
+      ],
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "properties": {
+        "$schema": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "source": {
+          "type": "object",
+          "properties": {
+            "patch": {
+              "type": "string",
+              "pattern": "^[a-z0-9-]+$",
+              "description": "A directory in patches/; commands run in its devshell on the patched source, {bench} expands to bench/"
+            },
+            "build": {
+              "minItems": 1,
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "Shell commands run once per patch revision"
+            }
+          },
+          "required": [
+            "patch",
+            "build"
+          ],
+          "additionalProperties": false
+        },
+        "command": {
+          "type": "string",
+          "description": "Shell command run in the patched source that writes {out}-light.png and {out}-dark.png"
+        }
+      },
+      "required": [
+        "name",
+        "source",
+        "command"
+      ],
+      "additionalProperties": false
+    }
+  ]
+}

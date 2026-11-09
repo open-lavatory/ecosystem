@@ -10,7 +10,7 @@ import { freePort, waitFor } from "./stack.ts";
 export type RunningApp = { origin: string; stop: () => void };
 
 // Outside bench/: TypeScript in an app build picks up bench/node_modules/@types from any parent directory.
-const cacheDirectory = join(process.env.XDG_CACHE_HOME || join(homedir(), ".cache"), "openlv-bench");
+export const cacheDirectory = join(process.env.XDG_CACHE_HOME || join(homedir(), ".cache"), "openlv-bench");
 
 const buildInput = (app: App, input: string, build: string[]) => {
   const variable = `BENCH_INPUT_${input.toUpperCase().replaceAll("-", "_")}`;

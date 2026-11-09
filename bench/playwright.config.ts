@@ -7,6 +7,10 @@ export default defineConfig({
   timeout: 120_000,
   workers: 1,
   reporter: [["list"], ["./runner/matrix.ts"]],
+  projects: [
+    { name: "bench", testIgnore: "screenshots.spec.ts" },
+    { name: "screenshots", testMatch: "screenshots.spec.ts" },
+  ],
   use: {
     trace: "retain-on-failure",
     screenshot: "only-on-failure",

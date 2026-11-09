@@ -18,7 +18,7 @@
     inherit (nixpkgs) lib;
     forAllSystems = f:
       lib.genAttrs ["x86_64-linux" "aarch64-linux"] (system: f nixpkgs.legacyPackages.${system});
-    tools = pkgs: with pkgs; [nodejs_24 pnpm_10 mosquitto foundry git];
+    tools = pkgs: with pkgs; [nodejs_24 pnpm_10 mosquitto foundry git xvfb xdotool xclip imagemagick];
     env = pkgs: {
       BENCH_CHROMIUM = lib.getExe pkgs.chromium;
       BENCH_INPUT_OPEN_LAVATORY = "${open-lavatory}";

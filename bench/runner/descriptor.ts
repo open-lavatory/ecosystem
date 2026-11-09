@@ -103,3 +103,49 @@ export const loadApps = (): App[] =>
 
       return { ...parsed.data, appId };
     });
+
+const screenshotsDirectory = join(import.meta.dirname, "..", "screenshots");
+
+export const screenshotStepSchema = z.union([
+  ...stepSchema.options.filter(option => !["url", "accountsChanged", "chainChanged"].some(key => key in option.shape)),
+  z.strictObject({ fill: selector, value: z.string().describe("Text to type, shown from its start; {openlv} expands to a fresh connection URL from the bench dApp") }),
+  z.strictObject({ tap: selector.describe("Dispatch a click on the first visible match, for react-native-web views that another layer covers") }),
+  z.strictObject({ style: z.string().describe("CSS added to the page") }),
+  z.strictObject({ send: z.string().describe("JSON-RPC method the bench dApp sends once its session is connected, without waiting for the answer"), params: z.array(z.unknown()) }),
+]);
+
+export type ScreenshotStep = z.infer<typeof screenshotStepSchema>;
+
+const patch = z.string().regex(/^[a-z0-9-]+$/).describe("A directory in patches/; commands run in its devshell on the patched source, {bench} expands to bench/");
+const build = z.array(z.string()).min(1).describe("Shell commands run once per patch revision");
+
+export const screenshotSchema = z.union([
+  z.strictObject({
+    $schema: z.string().optional(),
+    name: z.string(),
+    source: z.strictObject({ patch, build, serve: z.string().includes("{port}").describe("Shell command that serves the build on {port}") }),
+    viewport: z.strictObject({ width: z.number().int().positive(), height: z.number().int().positive() }),
+    mobile: z.boolean().optional().describe("Touch and mobile emulation"),
+    steps: z.array(screenshotStepSchema).min(1).describe("Steps to the openlv screen, run once per color scheme"),
+    element: selector.optional().describe("Crop the shot to this element"),
+  }),
+  z.strictObject({
+    $schema: z.string().optional(),
+    name: z.string(),
+    source: z.strictObject({ patch, build }),
+    command: z.string().describe("Shell command run in the patched source that writes {out}-light.png and {out}-dark.png"),
+  }),
+]);
+
+export type ScreenshotApp = z.infer<typeof screenshotSchema> & { appId: string };
+
+export const loadScreenshotApps = (): ScreenshotApp[] =>
+  readdirSync(screenshotsDirectory)
+    .filter(file => file.endsWith(".json") && file !== "schema.json")
+    .map((file) => {
+      const parsed = screenshotSchema.safeParse(JSON.parse(readFileSync(join(screenshotsDirectory, file), "utf8")));
+
+      if (!parsed.success) throw new Error(`screenshots/${file}: ${z.prettifyError(parsed.error)}`);
+
+      return { ...parsed.data, appId: basename(file, ".json") };
+    });

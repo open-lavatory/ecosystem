@@ -1,14 +1,20 @@
 import { expect, type Page } from "@playwright/test";
 
 import type { WalletChain } from "../peers/wallet.ts";
-import type { Step } from "./descriptor.ts";
+import type { ScreenshotStep, Step } from "./descriptor.ts";
 import type { WalletHandle } from "./peers.ts";
 
-export type StepScope = { page: Page; origin: string; wallet: WalletHandle; chains: WalletChain[] };
+export type StepScope = {
+  page: Page;
+  origin: string;
+  wallet: WalletHandle;
+  chains: WalletChain[];
+  dapp?: { connectionUrl: () => Promise<string>; send: (method: string, params: unknown[]) => void };
+};
 
 const STEP_TIMEOUT_MS = 30_000;
 
-export const runSteps = async (steps: Step[], { page, origin, wallet, chains }: StepScope) => {
+export const runSteps = async (steps: (Step | ScreenshotStep)[], { page, origin, wallet, chains, dapp }: StepScope) => {
   const expand = (selector: string) =>
     selector.replaceAll("{account0}", wallet.accounts[0] ?? "").replaceAll("{account1}", wallet.accounts[1] ?? "");
 
@@ -45,6 +51,34 @@ export const runSteps = async (steps: Step[], { page, origin, wallet, chains }: 
 
     if ("chainChanged" in step) {
       await wallet.switchChain(step.chainChanged);
+      continue;
+    }
+
+    if ("fill" in step) {
+      const field = page.locator(expand(step.fill)).first();
+
+      await field.fill(step.value.includes("{openlv}") && dapp ? step.value.replaceAll("{openlv}", await dapp.connectionUrl()) : step.value, { timeout: STEP_TIMEOUT_MS });
+      await field.evaluate((element) => {
+        element.scrollLeft = 0;
+      });
+      continue;
+    }
+
+    if ("tap" in step) {
+      const target = page.locator(expand(step.tap)).filter({ visible: true }).first();
+
+      await expect(target).toBeVisible({ timeout: STEP_TIMEOUT_MS });
+      await target.dispatchEvent("click");
+      continue;
+    }
+
+    if ("style" in step) {
+      await page.addStyleTag({ content: step.style });
+      continue;
+    }
+
+    if ("send" in step) {
+      dapp?.send(step.send, step.params);
       continue;
     }
 

@@ -1,0 +1,19 @@
+{
+  "$schema": "./schema.json",
+  "name": "RainbowKit",
+  "source": {
+    "patch": "rainbowkit",
+    "build": [
+      "NODE_OPTIONS=--max-old-space-size=4096 pnpm install --frozen-lockfile --filter @rainbow-me/rainbowkit... --filter with-vite...",
+      "cd examples/with-vite && git apply -p1 {bench}/screenshots/rainbowkit/theme.diff"
+    ],
+    "serve": "cd examples/with-vite && exec node ../../node_modules/vite/bin/vite.js dev --host 127.0.0.1 --port {port} --strictPort"
+  },
+  "viewport": { "width": 1280, "height": 800 },
+  "steps": [
+    { "goto": "/" },
+    { "click": "role=button[name='Connect Wallet']" },
+    { "visible": "[role=dialog] [role=document] >> text=Open Lavatory" }
+  ],
+  "element": "[role=dialog] [role=document]"
+}

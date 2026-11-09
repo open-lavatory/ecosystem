@@ -1,0 +1,30 @@
+{
+  "$schema": "./schema.json",
+  "name": "Safe{Wallet} mobile",
+  "source": {
+    "patch": "safe-wallet-mobile",
+    "build": [
+      "YARN_NPM_MINIMAL_AGE_GATE=0 YARN_ENABLE_IMMUTABLE_INSTALLS=false NODE_OPTIONS=--max-old-space-size=4096 yarn install",
+      "cp -r {bench}/screenshots/safe-wallet-mobile/web-stubs apps/mobile/web-stubs",
+      "sed -i \"s#^module.exports = withStorybook(config, {#require('./web-stubs/metro.web.js')(config)\\nmodule.exports = withStorybook(config, {#\" apps/mobile/metro.config.js",
+      "sed -i \"s/output: 'static'/output: 'single'/\" apps/mobile/app.config.ts",
+      "cd apps/mobile && EXPO_PUBLIC_ENV=e2e NODE_ENV=production RN_SRC_EXT=e2e.ts,e2e.tsx NODE_OPTIONS=--max-old-space-size=4096 yarn expo export --platform web --output-dir dist",
+      "mkdir -p apps/mobile/dist/__dmsans && cp node_modules/@tamagui/font-dm-sans/fonts/static/DMSans-*.ttf apps/mobile/dist/__dmsans/"
+    ],
+    "serve": "exec node_modules/.bin/http-server apps/mobile/dist -a 127.0.0.1 -p {port} -s"
+  },
+  "viewport": { "width": 390, "height": 844 },
+  "mobile": true,
+  "steps": [
+    { "goto": "/" },
+    { "tap": "[data-testid=e2eWcDappsTx]" },
+    { "tap": "[data-testid=navbar-qr-button]" },
+    { "fill": "[data-testid=e2e-scan-input]", "value": "{openlv}" },
+    { "tap": "[data-testid=e2e-scan-submit]" },
+    { "hidden": "text=Scan an Ethereum wallet address or connect to a desktop app" },
+    { "style": "[data-testid^=e2e], div[style*=\"SafeIcons\"][style*=\"var(--error)\"] { visibility: hidden !important; } @font-face { font-family: 'DM Sans'; font-weight: 300; src: url(/__dmsans/DMSans-Light.ttf); } @font-face { font-family: 'DM Sans'; font-weight: 400; src: url(/__dmsans/DMSans-Regular.ttf); } @font-face { font-family: 'DM Sans'; font-weight: 500; src: url(/__dmsans/DMSans-Medium.ttf); } @font-face { font-family: 'DM Sans'; font-weight: 600; src: url(/__dmsans/DMSans-SemiBold.ttf); } @font-face { font-family: 'DM Sans'; font-weight: 700; src: url(/__dmsans/DMSans-Bold.ttf); }" },
+    { "send": "eth_sendTransaction", "params": [{ "from": "0x2f3e600a3F38b66aDcbe6530B191F2BE55c2Fbb6", "to": "0x70997970C51812dc3A010C7d01b50e0d17dc79C8", "value": "0x2386f26fc10000" }] },
+    { "visible": "text=Transaction request" },
+    { "visible": "text=openlv bench dApp" }
+  ]
+}

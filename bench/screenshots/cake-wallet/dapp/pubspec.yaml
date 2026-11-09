@@ -1,0 +1,6 @@
+name: openlv_dapp_host
+publish_to: none
+environment:
+  sdk: ^3.10.0
+dependencies:
+  openlv: 0.0.2

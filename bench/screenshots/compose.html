@@ -1,0 +1,112 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  :root {
+    --space-2: 8px; --space-3: 12px; --space-4: 16px; --space-5: 24px;
+    --space-6: 32px; --space-7: 48px; --space-8: 64px;
+  }
+  [data-theme="light"] {
+    --tile: #f4f4f4;
+    --tile-ring: rgba(0, 0, 0, 0.05);
+    --ring: rgba(0, 0, 0, 0.08);
+    --bezel: #ececec;
+    --bezel-ring: rgba(0, 0, 0, 0.1);
+    --shadow-1: 0 0 0 1px var(--ring), 0 1px 2px rgba(17, 17, 17, 0.04), 0 4px 12px rgba(17, 17, 17, 0.05);
+    --shadow-2: 0 0 0 1px var(--ring), 0 1px 2px rgba(17, 17, 17, 0.05), 0 8px 24px rgba(17, 17, 17, 0.07), 0 24px 48px rgba(17, 17, 17, 0.06);
+    --shadow-3: 0 0 0 1px var(--ring), 0 2px 4px rgba(17, 17, 17, 0.06), 0 12px 32px rgba(17, 17, 17, 0.1), 0 40px 80px rgba(17, 17, 17, 0.1);
+  }
+  [data-theme="dark"] {
+    --tile: #161618;
+    --tile-ring: rgba(255, 255, 255, 0.06);
+    --ring: rgba(255, 255, 255, 0.1);
+    --bezel: #232325;
+    --bezel-ring: rgba(255, 255, 255, 0.12);
+    --shadow-1: 0 0 0 1px var(--ring), 0 1px 2px rgba(0, 0, 0, 0.3), 0 4px 12px rgba(0, 0, 0, 0.3);
+    --shadow-2: 0 0 0 1px var(--ring), 0 1px 2px rgba(0, 0, 0, 0.4), 0 8px 24px rgba(0, 0, 0, 0.4), 0 24px 48px rgba(0, 0, 0, 0.35);
+    --shadow-3: 0 0 0 1px var(--ring), 0 2px 4px rgba(0, 0, 0, 0.45), 0 12px 32px rgba(0, 0, 0, 0.5), 0 40px 80px rgba(0, 0, 0, 0.45);
+  }
+  html, body { margin: 0; background: transparent; }
+  #stage { position: relative; overflow: hidden; }
+  img { display: block; }
+
+  .shot { border-radius: var(--r); overflow: hidden; box-shadow: var(--shadow-2); width: fit-content; }
+  .shot img { width: var(--w); height: auto; }
+
+  .phone {
+    --pad: 5px;
+    --radius: calc(var(--w) * 0.15);
+    width: var(--w); padding: var(--pad); border-radius: var(--radius);
+    background: var(--bezel); box-shadow: inset 0 0 0 1px var(--bezel-ring), var(--shadow-2);
+  }
+  .phone img { width: 100%; height: auto; border-radius: calc(var(--radius) - var(--pad)); }
+
+  [data-d="fan"] #stage { width: 1400px; height: 640px; }
+  [data-d="fan"] .shot, [data-d="fan"] .phone { position: absolute; }
+
+  [data-d="grid"] #stage { width: 1200px; display: grid; grid-template-columns: repeat(3, 1fr); grid-auto-rows: 320px; gap: var(--space-4); }
+  [data-d="grid"] .tile { position: relative; overflow: hidden; border-radius: 20px; background: var(--tile); box-shadow: inset 0 0 0 1px var(--tile-ring); display: grid; place-items: center; }
+  [data-d="grid"] .tile .shot { box-shadow: var(--shadow-1); }
+  [data-d="grid"] .tile .phone { position: absolute; top: var(--space-7); left: 50%; transform: translateX(-50%); box-shadow: inset 0 0 0 1px var(--bezel-ring), var(--shadow-1); }
+</style>
+</head>
+<body>
+<div id="stage"></div>
+<script>
+const q = new URLSearchParams(location.search);
+const d = q.get("d") || "fan";
+const t = q.get("t") || "light";
+document.documentElement.dataset.d = d;
+document.documentElement.dataset.theme = t;
+const stage = document.getElementById("stage");
+
+const radius = { "safe-wallet-web": 24, connectkit: 22, rainbowkit: 24, "ens-apps": 6 };
+const width = { "safe-wallet-web": 454, connectkit: 360, rainbowkit: 722, "ens-apps": 400 };
+
+const el = (cls, app, vars, style) => {
+  const box = document.createElement("div");
+  box.className = cls;
+  for (const [k, v] of Object.entries(vars)) box.style.setProperty(k, v);
+  Object.assign(box.style, style);
+  const img = document.createElement("img");
+  img.src = `../.out/screenshots/${app}-${t}.png`;
+  box.append(img);
+  return box;
+};
+const shot = (app, scale, style = {}) =>
+  el("shot", app, { "--r": `${radius[app] * scale}px`, "--w": `${width[app] * scale}px` }, style);
+const phone = (app, w, style = {}) => el("phone", app, { "--w": `${w}px` }, style);
+
+const layouts = {
+  fan() {
+    stage.append(
+      shot("rainbowkit", 0.5, { left: "24px", top: "300px", transform: "rotate(-7deg)" }),
+      shot("ens-apps", 0.6, { left: "120px", top: "100px", transform: "rotate(-5deg)" }),
+      shot("connectkit", 0.6, { left: "360px", top: "170px", transform: "rotate(-3deg)" }),
+      phone("cake-wallet", 190, { left: "1110px", top: "190px", transform: "rotate(6deg)" }),
+      shot("safe-wallet-web", 0.72, { left: "540px", top: "56px", boxShadow: "var(--shadow-3)" }),
+      phone("safe-wallet-mobile", 190, { left: "860px", top: "150px", transform: "rotate(2deg)", boxShadow: "inset 0 0 0 1px var(--bezel-ring), var(--shadow-3)" }),
+    );
+  },
+  grid() {
+    const items = [
+      shot("safe-wallet-web", 0.5),
+      phone("safe-wallet-mobile", 200, { top: "auto", bottom: "var(--space-7)" }),
+      shot("connectkit", 0.56),
+      shot("rainbowkit", 0.46),
+      phone("cake-wallet", 200),
+      shot("ens-apps", 0.76),
+    ];
+    for (const item of items) {
+      const tile = document.createElement("div");
+      tile.className = "tile";
+      tile.append(item);
+      stage.append(tile);
+    }
+  },
+};
+layouts[d]();
+</script>
+</body>
+</html>

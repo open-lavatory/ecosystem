@@ -1,0 +1,22 @@
+{
+  "$schema": "./schema.json",
+  "name": "Safe{Wallet} web",
+  "source": {
+    "patch": "safe-wallet-web",
+    "build": [
+      "COREPACK_ENABLE_DOWNLOAD_PROMPT=0 CI=true corepack yarn install --immutable",
+      "COREPACK_ENABLE_DOWNLOAD_PROMPT=0 CI=true NEXT_PUBLIC_BRAND_NAME='Safe{Wallet}' NEXT_TELEMETRY_DISABLED=1 corepack yarn workspace @safe-global/web build"
+    ],
+    "serve": "exec node_modules/.bin/http-server apps/web/out -a 127.0.0.1 -p {port} -s"
+  },
+  "viewport": { "width": 1280, "height": 800 },
+  "steps": [
+    { "goto": "/home?safe=sep:0xBd69b0a9DC90eB6F9bAc3E4a5875f437348b6415" },
+    { "click": "[data-testid=cookies-popup] >> role=button[name='Save settings']" },
+    { "hidden": "[data-testid=cookies-popup]" },
+    { "click": "[aria-label='WalletConnect']" },
+    { "fill": "[data-testid=wc-input]", "value": "{openlv}" },
+    { "visible": "[data-slot=popover-content] >> text=openlv bench dApp" }
+  ],
+  "element": "[data-slot=popover-content]"
+}
