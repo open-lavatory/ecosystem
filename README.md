@@ -1,7 +1,7 @@
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset=".github/assets/grid-dark.png">
   <source media="(prefers-color-scheme: light)" srcset=".github/assets/grid-light.png">
-  <img alt="openlv connection screens in Safe{Wallet} web, Safe{Wallet} mobile, ConnectKit, RainbowKit, Cake Wallet and ENS apps" src=".github/assets/grid-light.png">
+  <img alt="openlv connection screens in Safe{Wallet} web, Safe{Wallet} mobile, ConnectKit, RainbowKit, Cake Wallet, ENS apps and Ambire mobile" src=".github/assets/grid-light.png">
 </picture>
 
 # ecosystem
@@ -18,5 +18,8 @@
   <tr>
     <td width="415" height="80" valign="bottom"><a href="patches/cake-wallet"><picture><source media="(prefers-color-scheme: dark)" srcset=".github/assets/apps/cake-wallet-dark.svg"><img src=".github/assets/apps/cake-wallet-light.svg" width="32" height="32" align="left" alt="Cake Wallet"></picture></a><a href="patches/cake-wallet"><b>Cake Wallet</b></a><br><img src=".github/assets/platforms/mobile.svg" width="16" height="16" align="absmiddle" alt="" title="Mobile"> Mobile<p align="right"><a href="patches/cake-wallet">patch</a>&emsp;<a href="https://github.com/cake-tech/cake_wallet/tree/8a81db52bca62ee372eda34b2357db2afb5acd15">source</a></p></td>
     <td width="415" height="80" valign="bottom"><a href="patches/ens-apps"><img src=".github/assets/apps/ens-apps.svg" width="32" height="32" align="left" alt="ENS apps"></a><a href="patches/ens-apps"><b>ENS apps</b></a><br><img src=".github/assets/platforms/web.svg" width="16" height="16" align="absmiddle" alt="" title="Web"> Web<p align="right"><a href="patches/ens-apps">patch</a>&emsp;<a href="https://github.com/ensdomains/apps-monorepo/tree/48ea17b253def0528e26d2a6e2f7a9c36596ebb4">source</a></p></td>
+  </tr>
+  <tr>
+    <td width="415" height="80" valign="bottom"><a href="patches/ambire-mobile"><img src=".github/assets/apps/ambire-mobile.png" width="32" height="32" align="left" alt="Ambire"></a><a href="patches/ambire-mobile"><b>Ambire</b></a><br><img src=".github/assets/platforms/mobile.svg" width="16" height="16" align="absmiddle" alt="" title="Mobile"> Mobile<p align="right"><a href="patches/ambire-mobile">patch</a>&emsp;<a href="https://github.com/AmbireTech/extension/tree/b18ab9b569fcca787951a09eb65b5fd429360708">source</a></p></td>
   </tr>
 </table>

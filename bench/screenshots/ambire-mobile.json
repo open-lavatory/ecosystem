@@ -1,0 +1,39 @@
+{
+  "$schema": "./schema.json",
+  "name": "Ambire mobile",
+  "source": {
+    "patch": "ambire-mobile",
+    "build": [
+      "yarn install --frozen-lockfile --network-timeout 600000",
+      "yarn patch-package",
+      "yarn build:webview",
+      "cp .env-sample .env",
+      "cp -r {bench}/screenshots/ambire-mobile/web-stubs web-stubs",
+      "echo \"module.exports = require('./web-stubs/metro.web.js')(config)\" >> metro.config.js",
+      "sed -i 's/^  \"name\": \"Ambire\",/  \"web\": { \"bundler\": \"metro\", \"output\": \"single\" },\\n&/' app.json",
+      "WEB_ENGINE=webview npx expo export --platform web --output-dir dist",
+      "sed -i 's#<script src=#<script type=\"module\" src=#g; s#</head>#<script>globalThis.__METRO_GLOBAL_PREFIX__ = \"\"</script></head>#' dist/index.html"
+    ],
+    "serve": "exec npx expo serve --port {port}"
+  },
+  "viewport": { "width": 390, "height": 844 },
+  "mobile": true,
+  "steps": [
+    { "goto": "/" },
+    { "style": "html, body { overflow: clip !important; }" },
+    { "tap": "[data-testid=import-existing-account-btn]" },
+    { "tap": "[data-testid=import-method-private-key]" },
+    { "fill": "[data-testid=enter-private-key-field]", "value": "ac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80" },
+    { "click": "[data-testid=backup-warning-checkbox]" },
+    { "tap": "[data-testid=import-button]" },
+    { "fill": "[data-testid=enter-pass-field]", "value": "openlv-bench" },
+    { "fill": "[data-testid=repeat-pass-field]", "value": "openlv-bench" },
+    { "tap": "[data-testid=create-keystore-pass-btn]:not([aria-disabled=true])" },
+    { "tap": "[data-testid=button-proceed]" },
+    { "tap": "[data-testid=networks-dropdown-tokens] >> xpath=preceding-sibling::div[1]" },
+    { "tap": "text=Enter code manually" },
+    { "fill": "input[placeholder='wc: ...']", "value": "{openlv}" },
+    { "tap": "text=Done" },
+    { "visible": "text=dapp.bench.openlv.sh" }
+  ]
+}

@@ -45,7 +45,9 @@
   [data-d="fan"] #stage { width: 1400px; height: 640px; }
   [data-d="fan"] .shot, [data-d="fan"] .phone { position: absolute; }
 
-  [data-d="grid"] #stage { width: 1200px; display: grid; grid-template-columns: repeat(3, 1fr); grid-auto-rows: 320px; gap: var(--space-4); }
+  [data-d="grid"] #stage { width: 1400px; display: grid; grid-template-columns: repeat(12, 1fr); grid-auto-rows: 320px; gap: var(--space-4); }
+  [data-d="grid"] .tile:nth-child(-n+4) { grid-column: span 3; }
+  [data-d="grid"] .tile:nth-child(n+5) { grid-column: span 4; }
   [data-d="grid"] .tile { position: relative; overflow: hidden; border-radius: 20px; background: var(--tile); box-shadow: inset 0 0 0 1px var(--tile-ring); display: grid; place-items: center; }
   [data-d="grid"] .tile .shot { box-shadow: var(--shadow-1); }
   [data-d="grid"] .tile .phone { position: absolute; top: var(--space-7); left: 50%; transform: translateX(-50%); box-shadow: inset 0 0 0 1px var(--bezel-ring), var(--shadow-1); }
@@ -83,20 +85,22 @@ const layouts = {
     stage.append(
       shot("rainbowkit", 0.5, { left: "24px", top: "300px", transform: "rotate(-7deg)" }),
       shot("ens-apps", 0.6, { left: "120px", top: "100px", transform: "rotate(-5deg)" }),
-      shot("connectkit", 0.6, { left: "360px", top: "170px", transform: "rotate(-3deg)" }),
-      phone("cake-wallet", 190, { left: "1110px", top: "190px", transform: "rotate(6deg)" }),
-      shot("safe-wallet-web", 0.72, { left: "540px", top: "56px", boxShadow: "var(--shadow-3)" }),
-      phone("safe-wallet-mobile", 190, { left: "860px", top: "150px", transform: "rotate(2deg)", boxShadow: "inset 0 0 0 1px var(--bezel-ring), var(--shadow-3)" }),
+      shot("connectkit", 0.6, { left: "330px", top: "170px", transform: "rotate(-3deg)" }),
+      phone("cake-wallet", 180, { left: "1165px", top: "200px", transform: "rotate(6deg)" }),
+      phone("ambire-mobile", 180, { left: "975px", top: "170px", transform: "rotate(3deg)" }),
+      shot("safe-wallet-web", 0.72, { left: "490px", top: "56px", boxShadow: "var(--shadow-3)" }),
+      phone("safe-wallet-mobile", 190, { left: "785px", top: "150px", transform: "rotate(1deg)", boxShadow: "inset 0 0 0 1px var(--bezel-ring), var(--shadow-3)" }),
     );
   },
   grid() {
     const items = [
       shot("safe-wallet-web", 0.5),
-      phone("safe-wallet-mobile", 200, { top: "auto", bottom: "var(--space-7)" }),
       shot("connectkit", 0.56),
-      shot("rainbowkit", 0.46),
-      phone("cake-wallet", 200),
+      shot("rainbowkit", 0.44),
       shot("ens-apps", 0.76),
+      phone("safe-wallet-mobile", 200, { top: "auto", bottom: "var(--space-7)" }),
+      phone("ambire-mobile", 200),
+      phone("cake-wallet", 200),
     ];
     for (const item of items) {
       const tile = document.createElement("div");

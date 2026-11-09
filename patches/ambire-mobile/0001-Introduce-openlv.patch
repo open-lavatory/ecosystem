@@ -1,0 +1,518 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Luc <luc@lucemans.nl>
+Date: Mon, 9 Nov 2026 13:31:33 +0100
+Subject: [PATCH] Introduce openlv
+
+---
+ android/app/src/main/AndroidManifest.xml      |   6 +
+ ios/Ambire/Info.plist                         |   1 +
+ package.json                                  |   2 +
+ .../components/ManageApp/ManageApp.tsx        |  13 +-
+ .../screens/QrReaderScreen/QrReaderScreen.tsx |   6 +-
+ .../walletConnectContext.tsx                  |  15 +-
+ .../wallet-connect/services/openlvService.ts  | 261 ++++++++++++++++++
+ .../services/walletConnectService.ts          |  15 +
+ 8 files changed, 309 insertions(+), 10 deletions(-)
+ create mode 100644 src/mobile/modules/wallet-connect/services/openlvService.ts
+
+diff --git a/android/app/src/main/AndroidManifest.xml b/android/app/src/main/AndroidManifest.xml
+index b39ce06..75f4f50 100644
+--- a/android/app/src/main/AndroidManifest.xml
++++ b/android/app/src/main/AndroidManifest.xml
+@@ -58,6 +58,12 @@
+         <category android:name="android.intent.category.BROWSABLE"/>
+         <data android:scheme="wc"/>
+       </intent-filter>
++      <intent-filter>
++        <action android:name="android.intent.action.VIEW"/>
++        <category android:name="android.intent.category.DEFAULT"/>
++        <category android:name="android.intent.category.BROWSABLE"/>
++        <data android:scheme="openlv"/>
++      </intent-filter>
+       <intent-filter>
+         <action android:name="android.intent.action.VIEW"/>
+         <category android:name="android.intent.category.DEFAULT"/>
+diff --git a/ios/Ambire/Info.plist b/ios/Ambire/Info.plist
+index a6a5fdf..8ce9387 100644
+--- a/ios/Ambire/Info.plist
++++ b/ios/Ambire/Info.plist
+@@ -30,6 +30,7 @@
+         <array>
+           <string>ambire</string>
+           <string>wc</string>
++          <string>openlv</string>
+           <string>ethereum</string>
+         </array>
+       </dict>
+diff --git a/package.json b/package.json
+index 2d7e1a2..a77fac4 100644
+--- a/package.json
++++ b/package.json
+@@ -101,6 +101,8 @@
+     "@onekeyfe/hd-core": "1.1.0",
+     "@onekeyfe/hd-shared": "1.1.0",
+     "@onekeyfe/hd-web-sdk": "1.1.0",
++    "@openlv/react-native": "0.1.3",
++    "@openlv/session": "0.3.3",
+     "@raugfer/jazzicon": "1.0.6",
+     "@react-native-async-storage/async-storage": "3.0.2",
+     "@react-native-community/netinfo": "12.0.1",
+diff --git a/src/common/modules/explore/components/ManageApp/ManageApp.tsx b/src/common/modules/explore/components/ManageApp/ManageApp.tsx
+index 1811f77..d3d0ee9 100644
+--- a/src/common/modules/explore/components/ManageApp/ManageApp.tsx
++++ b/src/common/modules/explore/components/ManageApp/ManageApp.tsx
+@@ -66,9 +66,16 @@ const ManageApp = ({
+     'SelectedAccountController',
+     (state) => state.portfolio.balancePerNetwork
+   )
++  const { state: dappSessions } = useController('DappsController', (state) => state.dappSessions)
+ 
+   const connectedSources = dapp.connectedSources ?? []
+   const hasMultipleSources = connectedSources.length > 1
++  // openlv sessions ride the WalletConnect source, told apart by their topic
++  const wcSessions = Object.values(dappSessions).filter(
++    (session) => session.id === dapp.id && !!session.wcTopic
++  )
++  const isOpenlv =
++    wcSessions.length > 0 && wcSessions.every((session) => session.wcTopic?.startsWith('openlv:'))
+ 
+   const handleOpen = useCallback(() => {
+     setHasOpened(true)
+@@ -189,14 +196,14 @@ const ManageApp = ({
+                   ]}
+                 >
+                   <View style={[flexbox.directionRow, flexbox.alignCenter]}>
+-                    <WalletConnectIcon width={22} height={22} />
++                    {!isOpenlv && <WalletConnectIcon width={22} height={22} />}
+                     <Text
+                       fontSize={14}
+                       style={spacings.mlTy}
+                       weight="medium"
+                       appearance="secondaryText"
+                     >
+-                      {t('WC')}
++                      {isOpenlv ? t('openlv') : t('WC')}
+                     </Text>
+                   </View>
+                 </View>
+@@ -339,7 +346,7 @@ const ManageApp = ({
+         />
+         <Button
+           type="secondary"
+-          text={t('Disconnect WalletConnect')}
++          text={isOpenlv ? t('Disconnect openlv') : t('Disconnect WalletConnect')}
+           onPress={() => handleDisconnect('wc')}
+           hasBottomSpacing={false}
+           style={spacings.mtTy}
+diff --git a/src/mobile/modules/qr-reader/screens/QrReaderScreen/QrReaderScreen.tsx b/src/mobile/modules/qr-reader/screens/QrReaderScreen/QrReaderScreen.tsx
+index 01d5e70..2f5ab8a 100644
+--- a/src/mobile/modules/qr-reader/screens/QrReaderScreen/QrReaderScreen.tsx
++++ b/src/mobile/modules/qr-reader/screens/QrReaderScreen/QrReaderScreen.tsx
+@@ -21,6 +21,7 @@ import {
+   MobileLayoutContainer,
+   MobileLayoutWrapperMainContent
+ } from '@mobile/components/MobileLayoutWrapper'
++import { isOpenlvUri } from '@mobile/modules/wallet-connect/services/openlvService'
+ import useWalletConnect from '@mobile/modules/wallet-connect/hooks/useWalletConnect'
+ 
+ const QrReaderScreen = () => {
+@@ -67,8 +68,9 @@ const QrReaderScreen = () => {
+     async (rawValue: string) => {
+       const value = rawValue.trim()
+ 
+-      if (value.toLowerCase().startsWith('wc:')) {
+-        if (!isWcInitialized) {
++      const isOpenlv = isOpenlvUri(value)
++      if (isOpenlv || value.toLowerCase().startsWith('wc:')) {
++        if (!isOpenlv && !isWcInitialized) {
+           addToast(t('WalletConnect is still initializing. Please try again in a moment.'), {
+             type: 'warning'
+           })
+diff --git a/src/mobile/modules/wallet-connect/contexts/walletConnectContext/walletConnectContext.tsx b/src/mobile/modules/wallet-connect/contexts/walletConnectContext/walletConnectContext.tsx
+index f33cfe6..6702264 100644
+--- a/src/mobile/modules/wallet-connect/contexts/walletConnectContext/walletConnectContext.tsx
++++ b/src/mobile/modules/wallet-connect/contexts/walletConnectContext/walletConnectContext.tsx
+@@ -1,10 +1,12 @@
+ import { PermissionResponse, useCameraPermissions } from 'expo-camera'
+ import React, { createContext, useCallback, useContext, useEffect, useState } from 'react'
+ import { AppState, Linking } from 'react-native'
++import { OpenLVGlobals } from '@openlv/react-native'
+ 
+ import { ControllersMiddlewareContext } from '@common/contexts/controllersMiddlewareContext'
+ import { ControllerStoreContext } from '@common/contexts/controllerStoreContext'
+ import useToast from '@common/hooks/useToast'
++import { connectOpenlv, isOpenlvUri } from '@mobile/modules/wallet-connect/services/openlvService'
+ import {
+   getPendingRestoreSessions,
+   getWalletKit,
+@@ -91,7 +93,7 @@ export const WalletConnectProvider: React.FC<{ children: React.ReactNode }> = ({
+   const pair = useCallback(
+     async (uri: string) => {
+       const walletKit = getWalletKit()
+-      if (!walletKit || !isInitialized) return
++      if (!isOpenlvUri(uri) && (!walletKit || !isInitialized)) return
+ 
+       let pairTimeout: ReturnType<typeof setTimeout> | undefined
+ 
+@@ -99,7 +101,9 @@ export const WalletConnectProvider: React.FC<{ children: React.ReactNode }> = ({
+         await reconnectWalletConnectIfNeeded()
+         // Pairing over a dead socket never settles, so the scan looks like a no-op.
+         await Promise.race([
+-          walletKit.pair({ uri }),
++          walletKit && !isOpenlvUri(uri)
++            ? walletKit.pair({ uri })
++            : connectOpenlv(uri, dispatch, addToast),
+           new Promise((_, reject) => {
+             pairTimeout = setTimeout(() => reject(new Error('Pairing timed out')), PAIR_TIMEOUT)
+           })
+@@ -117,15 +121,15 @@ export const WalletConnectProvider: React.FC<{ children: React.ReactNode }> = ({
+         clearTimeout(pairTimeout)
+       }
+     },
+-    [isInitialized, addToast]
++    [isInitialized, dispatch, addToast]
+   )
+ 
+   useEffect(() => {
+     if (!isInitialized) return
+ 
+     const handleDeepLink = (event: { url: string }) => {
+-      if (event.url.startsWith('wc:')) {
+-        // Raw WC pairing URI — e.g. from a mobile browser "Connect Wallet" flow
++      if (event.url.startsWith('wc:') || isOpenlvUri(event.url)) {
++        // Raw pairing URI, wc: or openlv://, e.g. from a mobile browser "Connect Wallet" flow
+         pair(event.url)
+       } else if (event.url.includes('wc?uri=')) {
+         // Wrapped pairing URI — e.g. ambire://wc?uri=wc%3A… from another app
+@@ -158,6 +162,7 @@ export const WalletConnectProvider: React.FC<{ children: React.ReactNode }> = ({
+       value={{ pair, isInitialized, cameraPermission, requestCameraPermission }}
+     >
+       {children}
++      <OpenLVGlobals />
+     </WalletConnectContext.Provider>
+   )
+ }
+diff --git a/src/mobile/modules/wallet-connect/services/openlvService.ts b/src/mobile/modules/wallet-connect/services/openlvService.ts
+new file mode 100644
+index 0000000..2032099
+--- /dev/null
++++ b/src/mobile/modules/wallet-connect/services/openlvService.ts
+@@ -0,0 +1,261 @@
++import { connectSession, type Session, SessionStatus } from '@openlv/react-native'
++
++import { ToastOptions } from '@common/contexts/toastContext/toastContext'
++import { Action, MethodAction } from '@common/types/actions'
++
++type DispatchFn = (action: MethodAction | Action, windowId?: number, raw?: boolean) => void
++type AddToastFn = (text: string, options?: ToastOptions) => void
++
++type ProviderResponse = { result: unknown } | { error: unknown }
++
++type OpenlvSession = {
++  session: Session
++  proposalId: number
++  // Differs from the proposal's tab, so requests can't land on the session of the connect request
++  tabId: number
++  url: string
++  name: string
++  icon?: string
++  isApproved: boolean
++  approval: Promise<void>
++  approve: () => void
++  pendingRequests: Map<number, (response: ProviderResponse) => void>
++}
++
++const OPENLV_TOPIC_PREFIX = 'openlv:'
++
++const sessionsByTopic = new Map<string, OpenlvSession>()
++let addToastFn: AddToastFn | null = null
++let lastRequestId = 0
++
++export const isOpenlvUri = (uri: string) => uri.startsWith('openlv://')
++export const isOpenlvTopic = (topic: string) => topic.startsWith(OPENLV_TOPIC_PREFIX)
++
++const getTempSessionTopic = (proposalId: number) => `temp_wallet_connect_session_${proposalId}`
++
++const findByProposalId = (proposalId: number) =>
++  [...sessionsByTopic].find(([, entry]) => entry.proposalId === proposalId)
++
++export const isOpenlvProposal = (proposalId: number) => !!findByProposalId(proposalId)
++
++const propose = (topic: string, session: Session, dispatch: DispatchFn) => {
++  const peer = session.peerInfo.get()
++  const proposalId = Date.now() * 1000 + Math.floor(Math.random() * 1000)
++  // The peer identity is reverse DNS, e.g. sh.openlv.docs for docs.openlv.sh
++  const url = `https://${peer ? peer.identity.split('.').reverse().join('.') : 'openlv.sh'}`
++  const name = peer?.name ?? 'openlv'
++  let approve = () => {}
++  const approval = new Promise<void>((resolve) => {
++    approve = resolve
++  })
++
++  sessionsByTopic.set(topic, {
++    session,
++    proposalId,
++    tabId: proposalId + 1,
++    url,
++    name,
++    icon: peer?.icon,
++    isApproved: false,
++    approval,
++    approve,
++    pendingRequests: new Map()
++  })
++
++  dispatch(
++    {
++      type: 'HANDLE_PROVIDER_REQUEST',
++      params: {
++        request: { method: 'tabCheckin', origin: url, params: { name, icon: peer?.icon } },
++        requestId: 0,
++        providerId: 1,
++        topic: getTempSessionTopic(proposalId),
++        tabId: proposalId,
++        isWalletConnect: true
++      }
++    },
++    undefined,
++    true
++  )
++
++  dispatch(
++    {
++      type: 'HANDLE_PROVIDER_REQUEST',
++      params: {
++        request: { method: 'eth_requestAccounts', origin: url },
++        requestId: proposalId,
++        providerId: 1,
++        topic: getTempSessionTopic(proposalId),
++        tabId: proposalId,
++        isWalletConnect: true
++      }
++    },
++    undefined,
++    true
++  )
++}
++
++const end = (topic: string, dispatch: DispatchFn) => {
++  const entry = sessionsByTopic.get(topic)
++  if (!entry) return
++
++  sessionsByTopic.delete(topic)
++
++  if (!entry.isApproved) {
++    dispatch({
++      type: 'method',
++      params: {
++        method: 'deleteDappSessionByWcTopic',
++        ctrlName: 'DappsController',
++        args: [getTempSessionTopic(entry.proposalId)]
++      }
++    })
++    return
++  }
++
++  dispatch({
++    type: 'method',
++    params: {
++      method: 'disconnectWcSessionByTopic',
++      ctrlName: 'DappsController',
++      args: [topic]
++    }
++  })
++  addToastFn?.(`${entry.name} disconnected from your wallet.`, { type: 'info' })
++}
++
++const handleRequest = async (topic: string, message: unknown, dispatch: DispatchFn) => {
++  const entry = sessionsByTopic.get(topic)
++  if (!entry) throw new Error('openlv session not found')
++  if (!message || typeof message !== 'object' || !('method' in message) || !('id' in message)) {
++    throw new Error('Invalid openlv request')
++  }
++
++  await entry.approval
++
++  // Requests of a session must have increasing ids, see setSessionLastHandledRequestsId
++  lastRequestId = Math.max(Date.now() * 1000, lastRequestId + 1)
++  const requestId = lastRequestId
++
++  const response = await new Promise<ProviderResponse>((resolve) => {
++    entry.pendingRequests.set(requestId, resolve)
++    dispatch(
++      {
++        type: 'HANDLE_PROVIDER_REQUEST',
++        params: {
++          request: {
++            method: String(message.method),
++            params: 'params' in message ? message.params : undefined,
++            origin: entry.url
++          },
++          requestId,
++          providerId: 1,
++          topic,
++          tabId: entry.tabId,
++          isWalletConnect: true
++        }
++      },
++      undefined,
++      true
++    )
++  })
++
++  return { jsonrpc: '2.0', id: message.id, ...response }
++}
++
++export const connectOpenlv = async (uri: string, dispatch: DispatchFn, addToast: AddToastFn) => {
++  addToastFn = addToast
++
++  // Loaded on demand, so WebRTC is first touched after OpenLVGlobals installed its polyfills
++  const { loadTransport } = await import('@openlv/session')
++  const webrtc = await loadTransport('webrtc')
++  let topic = ''
++  const session = await connectSession(
++    uri,
++    (message) => handleRequest(topic, message, dispatch),
++    [webrtc()],
++    {
++      info: {
++        identity: 'com.ambire.wallet',
++        name: 'Ambire Wallet',
++        icon: 'https://ambire.com/wallet-logo.png'
++      }
++    }
++  )
++  topic = `${OPENLV_TOPIC_PREFIX}${session.getHandshakeParameters().sessionId}`
++
++  session.status.subscribe((status) => {
++    if (status === SessionStatus.CONNECTED && !sessionsByTopic.has(topic)) {
++      propose(topic, session, dispatch)
++    }
++    if (status === SessionStatus.DISCONNECTED) {
++      end(topic, dispatch)
++      // A session that fails on its own only reports it, closing releases its relay and peer
++      void session.close()
++    }
++  })
++
++  await session.connect().catch(async (error: unknown) => {
++    await session.close()
++    throw error
++  })
++}
++
++export const approveOpenlvSession = (proposalId: number, dispatch: DispatchFn) => {
++  const [topic, entry] = findByProposalId(proposalId) ?? []
++  if (!topic || !entry) return
++
++  dispatch(
++    {
++      type: 'SETUP_WC_SESSION_MESSENGER',
++      params: {
++        url: entry.url,
++        tabId: entry.tabId,
++        topic,
++        chainId: 1,
++        name: entry.name,
++        icon: entry.icon,
++        tempSessionTopic: getTempSessionTopic(proposalId)
++      }
++    },
++    undefined,
++    true
++  )
++
++  entry.isApproved = true
++  entry.approve()
++  addToastFn?.('Connected! You can return to the browser.', { type: 'success' })
++}
++
++export const rejectOpenlvSession = async (proposalId: number) => {
++  await findByProposalId(proposalId)?.[1].session.close()
++}
++
++export const respondToOpenlvRequest = (topic: string, id: number, response: ProviderResponse) => {
++  const pendingRequests = sessionsByTopic.get(topic)?.pendingRequests
++
++  pendingRequests?.get(id)?.(
++    'error' in response ? { error: response.error } : { result: response.result ?? null }
++  )
++  pendingRequests?.delete(id)
++}
++
++export const handleOpenlvSessionBroadcast = async (topic: string, event: string, data: unknown) => {
++  const entry = sessionsByTopic.get(topic)
++  if (!entry) return
++
++  if (event === 'disconnect') {
++    // Dropped first, so the session's own end doesn't report a disconnect by the app
++    sessionsByTopic.delete(topic)
++    await entry.session.close()
++    return
++  }
++
++  if (event === 'accountsChanged') {
++    await entry.session.send({ jsonrpc: '2.0', method: event, params: [data] })
++  } else if (event === 'chainChanged') {
++    // ProviderController broadcasts { chain, networkVersion }, other callers the hex chain id
++    const chain = data && typeof data === 'object' && 'chain' in data ? data.chain : data
++    await entry.session.send({ jsonrpc: '2.0', method: event, params: [chain] })
++  }
++}
+diff --git a/src/mobile/modules/wallet-connect/services/walletConnectService.ts b/src/mobile/modules/wallet-connect/services/walletConnectService.ts
+index 8bf2565..9c59da2 100644
+--- a/src/mobile/modules/wallet-connect/services/walletConnectService.ts
++++ b/src/mobile/modules/wallet-connect/services/walletConnectService.ts
+@@ -10,6 +10,15 @@ import { pino } from '@walletconnect/logger'
+ import { ProposalTypes, SessionTypes } from '@walletconnect/types'
+ import { getSdkError } from '@walletconnect/utils'
+ 
++import {
++  approveOpenlvSession,
++  handleOpenlvSessionBroadcast,
++  isOpenlvProposal,
++  isOpenlvTopic,
++  rejectOpenlvSession,
++  respondToOpenlvRequest
++} from './openlvService'
++
+ type WalletKitType = InstanceType<typeof WalletKit>
+ type DispatchFn = (action: MethodAction | Action, windowId?: number, raw?: boolean) => void
+ 
+@@ -535,6 +544,7 @@ export const initWalletConnect = async (
+ }
+ 
+ export const respondToWalletConnectRequest = async (topic: string, response: any, id: number) => {
++  if (isOpenlvTopic(topic)) return respondToOpenlvRequest(topic, id, response)
+   if (!walletKit) return
+ 
+   const hasResult = 'result' in response
+@@ -624,6 +634,7 @@ export const approveWalletConnectSession = async (
+   dispatch: DispatchFn,
+   enabledChainIds?: number[]
+ ) => {
++  if (isOpenlvProposal(proposalId)) return approveOpenlvSession(proposalId, dispatch)
+   if (!walletKit) return
+ 
+   // Use the SDK's public API to retrieve pending proposals.
+@@ -712,6 +723,7 @@ export const approveWalletConnectSession = async (
+ }
+ 
+ export const rejectWalletConnectSession = async (proposalId: number) => {
++  if (isOpenlvProposal(proposalId)) return rejectOpenlvSession(proposalId)
+   if (!walletKit) return
+ 
+   await walletKit.rejectSession({ id: proposalId, reason: getSdkError('USER_REJECTED') })
+@@ -728,6 +740,9 @@ export const handleWcSessionBroadcast = async (payload: {
+   event: string
+   data: any
+ }) => {
++  if (isOpenlvTopic(payload.wcSessionTopic)) {
++    return handleOpenlvSessionBroadcast(payload.wcSessionTopic, payload.event, payload.data)
++  }
+   if (!walletKit) return
+ 
+   if (payload.event === 'disconnect') {
+-- 
+2.55.0
+
