@@ -1,6 +1,7 @@
 import { spawn, spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { existsSync, mkdirSync, openSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { homedir } from "node:os";
 import { basename, join } from "node:path";
 
 import type { App } from "./descriptor.ts";
@@ -8,7 +9,8 @@ import { freePort, waitFor } from "./stack.ts";
 
 export type RunningApp = { origin: string; stop: () => void };
 
-const cacheDirectory = join(import.meta.dirname, "..", ".cache");
+// Outside bench/: TypeScript in an app build picks up bench/node_modules/@types from any parent directory.
+const cacheDirectory = join(process.env.XDG_CACHE_HOME || join(homedir(), ".cache"), "openlv-bench");
 
 const buildInput = (app: App, input: string, build: string[]) => {
   const variable = `BENCH_INPUT_${input.toUpperCase().replaceAll("-", "_")}`;

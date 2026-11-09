@@ -29,6 +29,7 @@ const selector = z.string().min(1).describe("Playwright selector; {account0} and
 export const stepSchema = z.union([
   z.strictObject({ goto: z.string().startsWith("/").describe("Path on the app origin") }),
   z.strictObject({ click: selector }),
+  z.strictObject({ select: selector, option: selector.describe("Value or label of the option to pick") }),
   z.strictObject({ visible: selector.describe("Wait until this selector is visible") }),
   z.strictObject({ hidden: selector.describe("Wait until this selector is hidden or gone") }),
   z.strictObject({ url: z.literal("clipboard").describe("Read the openlv connection URL and let the test wallet join it") }),
@@ -38,7 +39,11 @@ export type Step = z.infer<typeof stepSchema>;
 
 const requestSchema = z.discriminatedUnion("method", [
   z.strictObject({ method: z.literal("eth_accounts") }),
-  z.strictObject({ method: z.literal("personal_sign"), message: z.string() }),
+  z.strictObject({
+    method: z.literal("personal_sign"),
+    message: z.string(),
+    account: z.number().int().min(0).optional().describe("Index of the test wallet account that must sign"),
+  }),
   z.strictObject({ method: z.literal("eth_signTypedData_v4"), primaryType: z.string() }),
   z.strictObject({ method: z.literal("eth_sendTransaction") }),
   z.strictObject({ method: z.literal("wallet_switchEthereumChain"), chainId: z.number().int().positive() }),

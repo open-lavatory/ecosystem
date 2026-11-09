@@ -23,6 +23,11 @@ export const runSteps = async (steps: Step[], { page, origin, wallet, chains }: 
       continue;
     }
 
+    if ("select" in step) {
+      await page.locator(expand(step.select)).first().selectOption(expand(step.option), { timeout: STEP_TIMEOUT_MS });
+      continue;
+    }
+
     if ("visible" in step) {
       await expect(page.locator(expand(step.visible)).first()).toBeVisible({ timeout: STEP_TIMEOUT_MS });
       continue;

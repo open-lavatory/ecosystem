@@ -32,6 +32,7 @@ export const verifyApproved = async (request: WalletRequest, expected: ExpectedR
     const [data, address] = request.params as [string, Address];
 
     expect(isHex(data) ? hexToString(data) : data).toBe(expected.message);
+    if (expected.account !== undefined) expect(address.toLowerCase()).toBe(wallet.accounts[expected.account]?.toLowerCase());
     expect(await verifyMessage({ address, message: isHex(data) ? { raw: data } : data, signature: request.result as Hex })).toBe(true);
 
     return;

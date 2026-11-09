@@ -35,6 +35,31 @@
       "request": { "method": "personal_sign", "message": "Hello, world!" },
       "approved": [{ "visible": "text=\"Valid signature\"" }],
       "rejected": [{ "visible": "text=Cancelled or failed" }]
+    },
+    {
+      "name": "second-account",
+      "features": ["multiple_accounts"],
+      "steps": [
+        { "visible": "select:has(option[value='{account0}']:checked)" },
+        { "select": "select:has(option[value='{account1}'])", "option": "{account1}" },
+        { "click": "role=button[name='Sign']" }
+      ],
+      "request": { "method": "personal_sign", "message": "Hello, world!", "account": 1 },
+      "approved": [{ "visible": "text=\"Valid signature\"" }]
+    },
+    {
+      "name": "switch-chain",
+      "features": ["chain_switch"],
+      "steps": [
+        { "visible": "select:has(option[value='1']:checked)" },
+        { "select": "select:has(option[value='11155111'])", "option": "11155111" }
+      ],
+      "request": { "method": "wallet_switchEthereumChain", "chainId": 11155111 },
+      "approved": [{ "visible": "select:has(option[value='11155111']:checked)" }],
+      "rejected": [
+        { "visible": "text=Cancelled or failed" },
+        { "visible": "select:has(option[value='1']:checked)" }
+      ]
     }
   ]
 }
