@@ -19,11 +19,6 @@ export const features = [
 
 export type Feature = (typeof features)[number];
 
-export const gaps: { feature: Feature; issue: string }[] = [
-  { feature: "account_switch", issue: "open-lavatory#36" },
-  { feature: "wallet_chain_switch", issue: "open-lavatory#36" },
-];
-
 const selector = z.string().min(1).describe("Playwright selector; {account0} and {account1} expand to the test wallet's addresses");
 
 export const stepSchema = z.union([
@@ -32,6 +27,8 @@ export const stepSchema = z.union([
   z.strictObject({ select: selector, option: selector.describe("Value or label of the option to pick") }),
   z.strictObject({ visible: selector.describe("Wait until this selector is visible") }),
   z.strictObject({ hidden: selector.describe("Wait until this selector is hidden or gone") }),
+  z.strictObject({ accountsChanged: z.number().int().min(0).describe("The test wallet makes this account index active and sends accountsChanged") }),
+  z.strictObject({ chainChanged: z.number().int().positive().describe("The test wallet switches to this chain and sends chainChanged") }),
   z.strictObject({ url: z.literal("clipboard").describe("Read the openlv connection URL and let the test wallet join it") }),
 ]);
 
@@ -54,12 +51,12 @@ export type ExpectedRequest = z.infer<typeof requestSchema>;
 const actionSchema = z.strictObject({
   name: z.string().regex(/^[a-z0-9-]+$/),
   open: z.string().startsWith("/").optional().describe("Path to connect on for this action; defaults to the app's open"),
-  features: z.array(z.enum(features).exclude(["connect", "disconnect", "reject", "account_switch", "wallet_chain_switch"])).min(1),
-  steps: z.array(stepSchema).min(1).describe("Steps that make the app send the request"),
-  request: requestSchema.describe("The request the test wallet must receive"),
-  approved: z.array(stepSchema).min(1).describe("Steps that must pass after the wallet approves"),
+  features: z.array(z.enum(features).exclude(["connect", "disconnect", "reject"])).min(1),
+  steps: z.array(stepSchema).min(1).describe("Steps that make the app send the request, or the wallet send an event"),
+  request: requestSchema.optional().describe("The request the test wallet must receive; none for wallet events"),
+  approved: z.array(stepSchema).min(1).describe("Steps that must pass after the wallet approves or its event is handled"),
   rejected: z.array(stepSchema).min(1).optional().describe("Steps that must pass after the wallet rejects with 4001"),
-});
+}).refine(action => !action.rejected || action.request, "rejected needs a request");
 
 export type Action = z.infer<typeof actionSchema>;
 
@@ -86,6 +83,7 @@ export const descriptorSchema = z.strictObject({
     disconnected: z.array(stepSchema).min(1),
   }).optional(),
   actions: z.array(actionSchema),
+  gaps: z.array(z.strictObject({ feature: z.enum(features), reason: z.string() })).optional().describe("Features the app does not support, and what it does instead"),
 });
 
 export type Descriptor = z.infer<typeof descriptorSchema>;

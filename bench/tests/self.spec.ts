@@ -2,7 +2,7 @@ import { expect } from "@playwright/test";
 import { stringToHex } from "viem";
 
 import { awaitRequest, verifyApproved } from "../runner/checks.ts";
-import { type ExpectedRequest, type Feature, gaps } from "../runner/descriptor.ts";
+import type { ExpectedRequest, Feature } from "../runner/descriptor.ts";
 import { test } from "../runner/fixtures.ts";
 import type { DappHandle, WalletHandle } from "../runner/peers.ts";
 import type { Stack } from "../runner/stack.ts";
@@ -90,10 +90,4 @@ test.describe("self", () => {
     await dapp.close();
     await expect.poll(() => wallet.status(), { message: "wallet session ends" }).toBe("disconnected");
   });
-
-  for (const { feature, issue } of gaps) {
-    test(feature, { tag: tags([feature]), annotation: { type: "gap", description: issue } }, () => {
-      test.skip(true, `gap, ${issue}`);
-    });
-  }
 });

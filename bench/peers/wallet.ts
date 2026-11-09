@@ -41,6 +41,8 @@ export type TestWallet = {
   requests: () => WalletRequest[];
   activeChainId: () => number | undefined;
   reject: (method: string, isRejecting: boolean) => void;
+  switchAccount: (index: number) => Promise<void>;
+  switchChain: (chainId: number) => Promise<void>;
   close: () => Promise<void>;
 };
 
@@ -48,6 +50,7 @@ const createTestWallet = (): TestWallet => {
   let session: Session | undefined;
   let chains: WalletChain[] = [];
   let activeChain: WalletChain | undefined;
+  let activeAccounts = accounts.map(account => account.address);
   const log: WalletRequest[] = [];
   const rejecting = new Set<string>();
 
@@ -103,7 +106,7 @@ const createTestWallet = (): TestWallet => {
 
     if (USER_METHODS[method] && rejecting.has(method)) return rejected;
 
-    if (method === "eth_accounts" || method === "eth_requestAccounts") return { result: accounts.map(account => account.address) };
+    if (method === "eth_accounts" || method === "eth_requestAccounts") return { result: activeAccounts };
 
     if (method === "eth_chainId") return { result: numberToHex(activeChain.chainId) };
 
@@ -146,6 +149,14 @@ const createTestWallet = (): TestWallet => {
     return { jsonrpc: "2.0", id: request.id, ...outcome };
   };
 
+  const notify = async (method: string, params: unknown[]) => {
+    if (!session) throw new Error("wallet has no session");
+
+    const response = await session.send({ jsonrpc: "2.0", method, params });
+
+    if (response !== null) throw new Error(`dApp did not handle ${method}: ${JSON.stringify(response)}`);
+  };
+
   return {
     accounts: accounts.map(account => account.address),
     join: async (url: string, walletChains: WalletChain[]) => {
@@ -165,6 +176,22 @@ const createTestWallet = (): TestWallet => {
     reject: (method: string, isRejecting: boolean) => {
       if (isRejecting) rejecting.add(method);
       else rejecting.delete(method);
+    },
+    switchAccount: async (index: number) => {
+      const address = accounts[index]?.address;
+
+      if (!address) throw new Error(`no wallet account ${index}`);
+
+      activeAccounts = [address, ...activeAccounts.filter(candidate => candidate !== address)];
+      await notify("accountsChanged", [activeAccounts]);
+    },
+    switchChain: async (chainId: number) => {
+      const target = chains.find(chain => chain.chainId === chainId);
+
+      if (!target) throw new Error(`no wallet chain ${chainId}`);
+
+      activeChain = target;
+      await notify("chainChanged", [numberToHex(chainId)]);
     },
     close: async () => {
       await session?.close();

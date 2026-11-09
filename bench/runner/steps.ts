@@ -38,6 +38,16 @@ export const runSteps = async (steps: Step[], { page, origin, wallet, chains }: 
       continue;
     }
 
+    if ("accountsChanged" in step) {
+      await wallet.switchAccount(step.accountsChanged);
+      continue;
+    }
+
+    if ("chainChanged" in step) {
+      await wallet.switchChain(step.chainChanged);
+      continue;
+    }
+
     let url = "";
 
     await expect.poll(async () => {

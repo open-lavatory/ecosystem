@@ -19,11 +19,11 @@
     "open-lavatory": {
       "flake": false,
       "locked": {
-        "lastModified": 1794187797,
-        "narHash": "sha256-8v/dYFn0eMYir+VNXDCQIKeQBpd+t3Ps/8C8UbQ4tgw=",
+        "lastModified": 1794190656,
+        "narHash": "sha256-qMXoisM7kBHytKmMy5Vg2TpER215NBDncBi8hZojxtU=",
         "owner": "open-lavatory",
         "repo": "open-lavatory",
-        "rev": "4b27ca67a9f2ef7ac5779940ad27a74aa92f63b9",
+        "rev": "acce1ddd2b962f401aca423a26438dd62a24555f",
         "type": "github"
       },
       "original": {

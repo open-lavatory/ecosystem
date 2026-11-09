@@ -10,6 +10,8 @@ export type WalletHandle = {
   requests: () => Promise<WalletRequest[]>;
   activeChainId: () => Promise<number | undefined>;
   reject: (method: string, isRejecting: boolean) => Promise<void>;
+  switchAccount: (index: number) => Promise<void>;
+  switchChain: (chainId: number) => Promise<void>;
   close: () => Promise<void>;
 };
 
@@ -42,6 +44,8 @@ export const openWallet = async (browser: Browser, peersUrl: string): Promise<Wa
     requests: () => page.evaluate(() => benchWallet.requests()),
     activeChainId: () => page.evaluate(() => benchWallet.activeChainId()),
     reject: (method, isRejecting) => page.evaluate(([rejectMethod, flag]) => benchWallet.reject(rejectMethod, flag), [method, isRejecting] as const),
+    switchAccount: index => page.evaluate(accountIndex => benchWallet.switchAccount(accountIndex), index),
+    switchChain: chainId => page.evaluate(id => benchWallet.switchChain(id), chainId),
     close: () => page.evaluate(() => benchWallet.close()),
   };
 };

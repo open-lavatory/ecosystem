@@ -60,6 +60,24 @@
         { "visible": "text=Cancelled or failed" },
         { "visible": "select:has(option[value='1']:checked)" }
       ]
+    },
+    {
+      "name": "wallet-switches-account",
+      "features": ["account_switch"],
+      "steps": [
+        { "visible": "select:has(option[value='{account0}']:checked)" },
+        { "accountsChanged": 1 }
+      ],
+      "approved": [{ "visible": "select:has(option[value='{account1}']:checked)" }]
+    },
+    {
+      "name": "wallet-switches-chain",
+      "features": ["wallet_chain_switch"],
+      "steps": [
+        { "visible": "select:has(option[value='1']:checked)" },
+        { "chainChanged": 11155111 }
+      ],
+      "approved": [{ "visible": "select:has(option[value='11155111']:checked)" }]
     }
   ]
 }

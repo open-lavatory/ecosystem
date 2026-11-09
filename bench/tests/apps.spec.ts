@@ -1,7 +1,7 @@
 import { expect } from "@playwright/test";
 
 import { awaitRequest, verifyApproved } from "../runner/checks.ts";
-import { type App, type Feature, gaps, loadApps } from "../runner/descriptor.ts";
+import { type App, type Feature, loadApps } from "../runner/descriptor.ts";
 import { test } from "../runner/fixtures.ts";
 import { runSteps, type StepScope } from "../runner/steps.ts";
 
@@ -39,29 +39,29 @@ for (const app of loadApps()) {
         const after = (await scope.wallet.requests()).length;
 
         await runSteps(action.steps, scope);
-        await verifyApproved(await awaitRequest(scope.wallet, action.request.method, after), action.request, scope.wallet, scope.chains);
+        if (action.request) await verifyApproved(await awaitRequest(scope.wallet, action.request.method, after), action.request, scope.wallet, scope.chains);
         await runSteps(action.approved, scope);
       });
 
-      const { rejected } = action;
+      const { rejected, request } = action;
 
-      if (rejected) {
+      if (rejected && request) {
         test(`${action.name} rejected`, { tag: tags(["reject"]) }, async ({ scope }) => {
           await connect(app, scope, action.open);
-          await scope.wallet.reject(action.request.method, true);
+          await scope.wallet.reject(request.method, true);
 
           const after = (await scope.wallet.requests()).length;
 
           await runSteps(action.steps, scope);
-          expect((await awaitRequest(scope.wallet, action.request.method, after)).error?.code).toBe(4001);
+          expect((await awaitRequest(scope.wallet, request.method, after)).error?.code).toBe(4001);
           await runSteps(rejected, scope);
         });
       }
     }
 
-    for (const { feature, issue } of gaps) {
-      test(feature, { tag: tags([feature]), annotation: { type: "gap", description: issue } }, () => {
-        test.skip(true, `gap, ${issue}`);
+    for (const { feature, reason } of app.gaps ?? []) {
+      test(feature, { tag: tags([feature]), annotation: { type: "gap", description: reason } }, () => {
+        test.skip(true, `gap, ${reason}`);
       });
     }
   });

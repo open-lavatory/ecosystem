@@ -86,5 +86,15 @@
       "request": { "method": "wallet_switchEthereumChain", "chainId": 11155111 },
       "approved": [{ "visible": "text=Active chain: 0xaa36a7" }]
     }
+  ],
+  "gaps": [
+    {
+      "feature": "account_switch",
+      "reason": "wallet.page answers the wallet's accountsChanged with -32601 Method not found, and its wallet chip keeps the first account"
+    },
+    {
+      "feature": "wallet_chain_switch",
+      "reason": "wallet.page answers the wallet's chainChanged with -32601 Method not found, and /networks keeps showing the first chain as active"
+    }
   ]
 }
