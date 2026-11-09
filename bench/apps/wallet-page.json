@@ -16,7 +16,10 @@
     { "hidden": "text=\"Connect Wallet\"" }
   ],
   "disconnect": {
-    "steps": [{ "click": "role=button[name='Disconnect wallet']" }],
+    "steps": [
+      { "click": "role=button[name=/0x7099\\.\\.\\.79C8/]" },
+      { "click": "role=menuitem[name='Disconnect']" }
+    ],
     "disconnected": [{ "visible": "role=button[name='Connect wallet']" }]
   },
   "actions": [
@@ -41,8 +44,8 @@
       "steps": [{ "click": "role=button[name='Call eth_accounts']" }],
       "request": { "method": "eth_accounts" },
       "approved": [
-        { "visible": "text=2 accounts returned" },
-        { "visible": "text={account1}" }
+        { "click": "role=tab[name='Response']" },
+        { "visible": "role=tabpanel[name='Response'] >> text=/^\\[\\s*\"{account0}\",\\s*\"{account1}\"\\s*\\]$/" }
       ]
     },
     {
