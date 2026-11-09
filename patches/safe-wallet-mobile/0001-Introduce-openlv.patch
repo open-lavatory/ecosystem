@@ -1,0 +1,625 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Jonatan Holmgren <jonatan@jontes.page>
+Date: Thu, 12 Mar 2026 18:45:24 +0100
+Subject: [PATCH] Introduce openlv
+
+---
+ apps/mobile/package.json                      |   2 +
+ apps/mobile/src/app/_layout.tsx               |   2 +
+ .../components/DappOriginContext.tsx          |  21 ++-
+ .../WalletConnect/Wallet/OpenLVController.tsx |  35 +++++
+ .../Wallet/components/ConnectedDappRow.tsx    |   8 +-
+ .../Wallet/components/ConnectedDappsEntry.tsx |   3 +-
+ .../components/ConnectedDappsScreen.tsx       |  27 +++-
+ .../components/SendTransactionSheet.tsx       |   9 +-
+ .../WalletConnectManualEntry.container.tsx    |   3 +-
+ .../components/WalletConnectManualEntry.tsx   |   3 +-
+ .../Wallet/hooks/useActiveSafeBinding.ts      |   2 +
+ .../Wallet/hooks/useDisconnectSession.ts      |  11 +-
+ .../Wallet/hooks/useOpenLVSessions.ts         |  11 ++
+ .../Wallet/hooks/useWalletConnectScan.ts      |   5 +-
+ .../Wallet/services/openLVWallet.ts           | 143 ++++++++++++++++++
+ .../Wallet/store/walletKitListeners.ts        |  27 ++--
+ 16 files changed, 276 insertions(+), 36 deletions(-)
+ create mode 100644 apps/mobile/src/features/WalletConnect/Wallet/OpenLVController.tsx
+ create mode 100644 apps/mobile/src/features/WalletConnect/Wallet/hooks/useOpenLVSessions.ts
+ create mode 100644 apps/mobile/src/features/WalletConnect/Wallet/services/openLVWallet.ts
+
+diff --git a/apps/mobile/package.json b/apps/mobile/package.json
+index 06e3a6703..f73c13b2d 100644
+--- a/apps/mobile/package.json
++++ b/apps/mobile/package.json
+@@ -54,6 +54,8 @@
+     "@ledgerhq/device-signer-kit-ethereum": "1.8.0",
+     "@ledgerhq/device-transport-kit-react-native-ble": "^1.1.0",
+     "@notifee/react-native": "^9.1.8",
++    "@openlv/react-native": "0.1.2",
++    "@openlv/transport": "0.3.0",
+     "@react-native-async-storage/async-storage": "2.2.0",
+     "@react-native-clipboard/clipboard": "^1.16.3",
+     "@react-native-community/datetimepicker": "8.6.0",
+diff --git a/apps/mobile/src/app/_layout.tsx b/apps/mobile/src/app/_layout.tsx
+index 0ba455619..55a1df716 100644
+--- a/apps/mobile/src/app/_layout.tsx
++++ b/apps/mobile/src/app/_layout.tsx
+@@ -38,6 +38,7 @@ import { useDatadogConsent } from '@/src/hooks/useDatadogConsent'
+ import { DatadogWrapper } from '@/src/providers/DatadogWrapper'
+ import { AppKitInitializer } from '@/src/features/WalletConnect/Signer/components/AppKitInitializer'
+ import { WalletKitController } from '@/src/features/WalletConnect/Wallet/WalletKitController'
++import { OpenLVController } from '@/src/features/WalletConnect/Wallet/OpenLVController'
+ 
+ Logger.setLevel(__DEV__ ? LogLevel.TRACE : LogLevel.ERROR)
+ // Initialize all notification handlers
+@@ -167,6 +168,7 @@ function RootLayout() {
+                               <NavigationStack />
+                               <SafeStatusBar />
+                               <WalletKitController />
++                              <OpenLVController />
+                             </NavigationGuardHOC>
+                           </SafeToastProvider>
+                         </BottomSheetModalProvider>
+diff --git a/apps/mobile/src/features/ConfirmTx/components/DappOriginContext.tsx b/apps/mobile/src/features/ConfirmTx/components/DappOriginContext.tsx
+index 6cd85568f..e65ffa14a 100644
+--- a/apps/mobile/src/features/ConfirmTx/components/DappOriginContext.tsx
++++ b/apps/mobile/src/features/ConfirmTx/components/DappOriginContext.tsx
+@@ -1,6 +1,11 @@
+ import { createContext, useContext, useMemo, type ReactNode } from 'react'
+ import { useAppSelector } from '@/src/store/hooks'
+-import { selectDappMetadataByTxHash } from '@/src/features/WalletConnect/Wallet/store/walletKitSlice'
++import {
++  selectDappMetadataByTxHash,
++  selectOutstandingRequestByHash,
++} from '@/src/features/WalletConnect/Wallet/store/walletKitSlice'
++import { useOpenLVSessions } from '@/src/features/WalletConnect/Wallet/hooks/useOpenLVSessions'
++import { getOpenLVTopic } from '@/src/features/WalletConnect/Wallet/services/openLVWallet'
+ 
+ export type DappOrigin = {
+   name: string
+@@ -17,10 +22,16 @@ export const DappOriginContextProvider = DappOriginContext.Provider
+ // Resolves the originating dApp from the WC store by txId, keeping consumers WC-agnostic.
+ export function DappOriginProvider({ txId, children }: { txId: string; children: ReactNode }) {
+   const dappMetadata = useAppSelector((state) => selectDappMetadataByTxHash(state, txId))
+-  const dappOrigin = useMemo(
+-    () => (dappMetadata ? { name: dappMetadata.name, logoUri: dappMetadata.icons?.[0] } : null),
+-    [dappMetadata],
+-  )
++  const topic = useAppSelector((state) => selectOutstandingRequestByHash(state, txId)?.topic)
++  const openLVPeer = useOpenLVSessions()
++    .find((session) => getOpenLVTopic(session) === topic)
++    ?.peerInfo.get()
++  const dappOrigin = useMemo(() => {
++    if (dappMetadata) {
++      return { name: dappMetadata.name, logoUri: dappMetadata.icons?.[0] }
++    }
++    return openLVPeer ? { name: openLVPeer.name, logoUri: openLVPeer.icon } : null
++  }, [dappMetadata, openLVPeer])
+   return <DappOriginContext.Provider value={dappOrigin}>{children}</DappOriginContext.Provider>
+ }
+ 
+diff --git a/apps/mobile/src/features/WalletConnect/Wallet/OpenLVController.tsx b/apps/mobile/src/features/WalletConnect/Wallet/OpenLVController.tsx
+new file mode 100644
+index 000000000..7b4246b1a
+--- /dev/null
++++ b/apps/mobile/src/features/WalletConnect/Wallet/OpenLVController.tsx
+@@ -0,0 +1,35 @@
++import React, { useEffect } from 'react'
++import { useStore } from 'react-redux'
++import { OpenLVGlobals } from '@openlv/react-native'
++import { FEATURES } from '@safe-global/utils/utils/chains'
++import { useHasFeature } from '@/src/hooks/useHasFeature'
++import { useAppDispatch } from '@/src/store/hooks'
++import { type RootState } from '@/src/store'
++import { selectActiveSafe } from '@/src/store/activeSafeSlice'
++import { sessionRequestReceived } from './store/walletKitSlice'
++import { openLVWallet } from './services/openLVWallet'
++
++export const OpenLVController: React.FC = () => {
++  const isEnabled = useHasFeature(FEATURES.NATIVE_WALLETCONNECT) ?? false
++  const dispatch = useAppDispatch()
++  const store = useStore<RootState>()
++
++  useEffect(() => {
++    if (!isEnabled) {
++      return
++    }
++    return openLVWallet.onRequest(({ id, topic, method, params }) => {
++      const chainId = selectActiveSafe(store.getState())?.chainId ?? ''
++      dispatch(
++        sessionRequestReceived({
++          id,
++          topic,
++          params: { request: { method, params }, chainId: `eip155:${chainId}` },
++          verifyContext: { verified: { origin: '', validation: 'UNKNOWN', verifyUrl: '' } },
++        }),
++      )
++    })
++  }, [dispatch, store, isEnabled])
++
++  return isEnabled ? <OpenLVGlobals /> : null
++}
+diff --git a/apps/mobile/src/features/WalletConnect/Wallet/components/ConnectedDappRow.tsx b/apps/mobile/src/features/WalletConnect/Wallet/components/ConnectedDappRow.tsx
+index 444c764b2..f8bbc12ef 100644
+--- a/apps/mobile/src/features/WalletConnect/Wallet/components/ConnectedDappRow.tsx
++++ b/apps/mobile/src/features/WalletConnect/Wallet/components/ConnectedDappRow.tsx
+@@ -12,11 +12,15 @@ import { DappIcon } from './DappIcon'
+ import { VerifyStatusIcon } from './VerifyStatusIcon'
+ import { ConnectedDappContextMenu } from './ConnectedDappContextMenu'
+ 
++export type ConnectedDapp = Pick<SessionTypes.Struct, 'topic'> & {
++  peer: { metadata: Pick<SessionTypes.Struct['peer']['metadata'], 'name' | 'icons'> }
++}
++
+ interface Props {
+-  session: SessionTypes.Struct
++  session: ConnectedDapp
+   variant?: VerifyVariant
+   /** Asks the screen to open the disconnect confirmation for this session. */
+-  onRequestDisconnect: (session: SessionTypes.Struct) => void
++  onRequestDisconnect: (session: ConnectedDapp) => void
+   /** Notifies the screen that this row starts to swipe open, so it can close the previous one. */
+   onSwipeOpenStart?: (methods: SwipeableMethods) => void
+   /** Notifies the screen that this row unmounts, so it can drop a reference to its swipeable. */
+diff --git a/apps/mobile/src/features/WalletConnect/Wallet/components/ConnectedDappsEntry.tsx b/apps/mobile/src/features/WalletConnect/Wallet/components/ConnectedDappsEntry.tsx
+index c0aba078c..80a7294ac 100644
+--- a/apps/mobile/src/features/WalletConnect/Wallet/components/ConnectedDappsEntry.tsx
++++ b/apps/mobile/src/features/WalletConnect/Wallet/components/ConnectedDappsEntry.tsx
+@@ -6,6 +6,7 @@ import { FEATURES } from '@safe-global/utils/utils/chains'
+ import { useAppSelector } from '@/src/store/hooks'
+ import { useHasFeature } from '@/src/hooks/useHasFeature'
+ import { selectSessionCount } from '../store/walletKitSlice'
++import { useOpenLVSessions } from '../hooks/useOpenLVSessions'
+ import { SafeListItem } from '@/src/components/SafeListItem/SafeListItem'
+ import { SafeFontIcon } from '@/src/components/SafeFontIcon'
+ 
+@@ -16,7 +17,7 @@ import { SafeFontIcon } from '@/src/components/SafeFontIcon'
+  */
+ export const ConnectedDappsEntry: React.FC = () => {
+   const isEnabled = useHasFeature(FEATURES.NATIVE_WALLETCONNECT) ?? false
+-  const count = useAppSelector(selectSessionCount)
++  const count = useAppSelector(selectSessionCount) + useOpenLVSessions().length
+   if (!isEnabled || count === 0) {
+     return null
+   }
+diff --git a/apps/mobile/src/features/WalletConnect/Wallet/components/ConnectedDappsScreen.tsx b/apps/mobile/src/features/WalletConnect/Wallet/components/ConnectedDappsScreen.tsx
+index e568d4614..ccb1504d6 100644
+--- a/apps/mobile/src/features/WalletConnect/Wallet/components/ConnectedDappsScreen.tsx
++++ b/apps/mobile/src/features/WalletConnect/Wallet/components/ConnectedDappsScreen.tsx
+@@ -1,22 +1,37 @@
+-import React, { useCallback, useRef, useState } from 'react'
++import React, { useCallback, useMemo, useRef, useState } from 'react'
+ import { FlatList } from 'react-native'
+ import type { SwipeableMethods } from 'react-native-gesture-handler/ReanimatedSwipeable'
+ import { H2, Text, YStack } from 'tamagui'
+ import { useSafeAreaInsets } from 'react-native-safe-area-context'
+-import type { SessionTypes } from '@walletconnect/types'
+ import { useAppSelector } from '@/src/store/hooks'
+ import { selectSessions, selectVerifyByTopic } from '../store/walletKitSlice'
+ import { useDisconnectSession } from '../hooks/useDisconnectSession'
+-import { ConnectedDappRow } from './ConnectedDappRow'
++import { useOpenLVSessions } from '../hooks/useOpenLVSessions'
++import { getOpenLVTopic } from '../services/openLVWallet'
++import { ConnectedDappRow, type ConnectedDapp } from './ConnectedDappRow'
+ import { DisconnectConfirmModal } from './DisconnectConfirmModal'
+ 
+ /** Lists live WalletConnect dApp sessions; a 3-dots menu or left-swipe routes to a shared confirm sheet. */
+ export const ConnectedDappsScreen: React.FC = () => {
+-  const sessions = useAppSelector(selectSessions)
++  const wcSessions = useAppSelector(selectSessions)
++  const openLVSessions = useOpenLVSessions()
++  const sessions = useMemo<ConnectedDapp[]>(
++    () => [
++      ...wcSessions,
++      ...openLVSessions.map((session) => {
++        const peer = session.peerInfo.get()
++        return {
++          topic: getOpenLVTopic(session),
++          peer: { metadata: { name: peer?.name ?? '', icons: peer?.icon ? [peer.icon] : [] } },
++        }
++      }),
++    ],
++    [wcSessions, openLVSessions],
++  )
+   const verifyByTopic = useAppSelector(selectVerifyByTopic)
+   const { disconnect, busyTopic } = useDisconnectSession()
+   const insets = useSafeAreaInsets()
+-  const [selected, setSelected] = useState<SessionTypes.Struct | null>(null)
++  const [selected, setSelected] = useState<ConnectedDapp | null>(null)
+ 
+   // The row currently swiped open
+   const openSwipeRef = useRef<SwipeableMethods | null>(null)
+@@ -47,7 +62,7 @@ export const ConnectedDappsScreen: React.FC = () => {
+   }, [selected, disconnect])
+ 
+   const renderItem = useCallback(
+-    ({ item }: { item: SessionTypes.Struct }) => (
++    ({ item }: { item: ConnectedDapp }) => (
+       <ConnectedDappRow
+         session={item}
+         variant={verifyByTopic[item.topic]}
+diff --git a/apps/mobile/src/features/WalletConnect/Wallet/components/SendTransactionSheet.tsx b/apps/mobile/src/features/WalletConnect/Wallet/components/SendTransactionSheet.tsx
+index 8a30b11e3..bac244ab6 100644
+--- a/apps/mobile/src/features/WalletConnect/Wallet/components/SendTransactionSheet.tsx
++++ b/apps/mobile/src/features/WalletConnect/Wallet/components/SendTransactionSheet.tsx
+@@ -3,6 +3,8 @@ import { useAppSelector } from '@/src/store/hooks'
+ import { DappIdentity } from './DappIdentity'
+ import { verifyStatusToVariant } from '../utils/verifyStatus'
+ import { selectSessionsRecord, type PendingSessionRequest } from '../store/walletKitSlice'
++import { useOpenLVSessions } from '../hooks/useOpenLVSessions'
++import { getOpenLVTopic } from '../services/openLVWallet'
+ 
+ type Props = {
+   pending: PendingSessionRequest
+@@ -14,14 +16,17 @@ type Props = {
+ // user taps Review (useTxRequestActions). dApp metadata comes from the mirrored session by topic.
+ export const SendTransactionSheet: React.FC<Props> = ({ pending, onOpenPermissions }) => {
+   const meta = useAppSelector((s) => selectSessionsRecord(s)[pending.topic]?.peer.metadata)
++  const openLVPeer = useOpenLVSessions()
++    .find((session) => getOpenLVTopic(session) === pending.topic)
++    ?.peerInfo.get()
+   const variant = useMemo(() => verifyStatusToVariant(pending.verifyContext?.verified), [pending.verifyContext])
+ 
+   return (
+     <DappIdentity
+       title="Transaction request"
+-      name={meta?.name}
++      name={meta?.name ?? openLVPeer?.name}
+       url={meta?.url}
+-      iconUrl={meta?.icons?.[0]}
++      iconUrl={meta?.icons?.[0] ?? openLVPeer?.icon}
+       variant={variant}
+       onPressBadge={onOpenPermissions}
+       onPressDomain={onOpenPermissions}
+diff --git a/apps/mobile/src/features/WalletConnect/Wallet/components/WalletConnectManualEntry.container.tsx b/apps/mobile/src/features/WalletConnect/Wallet/components/WalletConnectManualEntry.container.tsx
+index 9aa9836fa..f111596a7 100644
+--- a/apps/mobile/src/features/WalletConnect/Wallet/components/WalletConnectManualEntry.container.tsx
++++ b/apps/mobile/src/features/WalletConnect/Wallet/components/WalletConnectManualEntry.container.tsx
+@@ -3,6 +3,7 @@ import { useRouter } from 'expo-router'
+ import { getWalletKit } from '../walletKit'
+ import { getPairErrorMessage, logWalletKitError } from '../utils/errors'
+ import { PAIR_TIMEOUT_MESSAGE, PAIR_TIMEOUT_MS } from '../utils/constants'
++import { isOpenLVUri, openLVWallet } from '../services/openLVWallet'
+ import { WalletConnectManualEntry } from './WalletConnectManualEntry'
+ 
+ export function WalletConnectManualEntryContainer() {
+@@ -25,7 +26,7 @@ export function WalletConnectManualEntryContainer() {
+       const wk = await getWalletKit()
+       // WalletKit.pair() can't be aborted, so on timeout we only stop reacting here — the relay
+       // pairing may still complete and surface a proposal later via the global RequestSheetHost.
+-      await wk.pair({ uri })
++      await (isOpenLVUri(uri) ? openLVWallet.connect(uri) : wk.pair({ uri }))
+       if (cancelled) {
+         return
+       }
+diff --git a/apps/mobile/src/features/WalletConnect/Wallet/components/WalletConnectManualEntry.tsx b/apps/mobile/src/features/WalletConnect/Wallet/components/WalletConnectManualEntry.tsx
+index d10c52025..cf2b0c7a4 100644
+--- a/apps/mobile/src/features/WalletConnect/Wallet/components/WalletConnectManualEntry.tsx
++++ b/apps/mobile/src/features/WalletConnect/Wallet/components/WalletConnectManualEntry.tsx
+@@ -9,6 +9,7 @@ import { SafeButton } from '@/src/components/SafeButton'
+ import { SafeFontIcon } from '@/src/components/SafeFontIcon'
+ import { LargeHeaderTitle } from '@/src/components/Title/LargeHeaderTitle'
+ import { logWalletKitError } from '../utils/errors'
++import { isOpenLVUri } from '../services/openLVWallet'
+ 
+ type Props = {
+   onPair: (uri: string) => void
+@@ -37,7 +38,7 @@ export const WalletConnectManualEntry: React.FC<Props> = ({ onPair, isPairing =
+ 
+   const attemptPair = (value: string) => {
+     const trimmed = value.trim()
+-    if (!isPairingUri(trimmed)) {
++    if (!isPairingUri(trimmed) && !isOpenLVUri(trimmed)) {
+       setFormatError(INVALID_MESSAGE)
+       return
+     }
+diff --git a/apps/mobile/src/features/WalletConnect/Wallet/hooks/useActiveSafeBinding.ts b/apps/mobile/src/features/WalletConnect/Wallet/hooks/useActiveSafeBinding.ts
+index bd8f0a8f7..afa14fd6e 100644
+--- a/apps/mobile/src/features/WalletConnect/Wallet/hooks/useActiveSafeBinding.ts
++++ b/apps/mobile/src/features/WalletConnect/Wallet/hooks/useActiveSafeBinding.ts
+@@ -7,6 +7,7 @@ import { getEip155ChainId } from '@safe-global/utils/features/walletconnect/util
+ import { useAppSelector } from '@/src/store/hooks'
+ import { selectActiveSafe } from '@/src/store/activeSafeSlice'
+ import { logWalletKitError } from '../utils/errors'
++import { openLVWallet } from '../services/openLVWallet'
+ 
+ export const useActiveSafeBinding = (walletKit: IWalletKit | null) => {
+   const activeSafe = useAppSelector(selectActiveSafe)
+@@ -17,6 +18,7 @@ export const useActiveSafeBinding = (walletKit: IWalletKit | null) => {
+     }
+     const checksummed = getAddress(activeSafe.address)
+     const chainCaip2 = getEip155ChainId(activeSafe.chainId)
++    openLVWallet.updateSessions(activeSafe.chainId, checksummed)
+ 
+     // Source sessions from the SDK's live snapshot, not the redux mirror. A new session is
+     // already bound to the active Safe at approval time, so this effect only needs to re-bind
+diff --git a/apps/mobile/src/features/WalletConnect/Wallet/hooks/useDisconnectSession.ts b/apps/mobile/src/features/WalletConnect/Wallet/hooks/useDisconnectSession.ts
+index f77ef6a12..f4235dc2a 100644
+--- a/apps/mobile/src/features/WalletConnect/Wallet/hooks/useDisconnectSession.ts
++++ b/apps/mobile/src/features/WalletConnect/Wallet/hooks/useDisconnectSession.ts
+@@ -5,6 +5,7 @@ import { showToast } from '@/src/store/toastSlice'
+ import { removeSession } from '../store/walletKitSlice'
+ import { getWalletKit } from '../walletKit'
+ import { logWalletKitError } from '../utils/errors'
++import { OPENLV_TOPIC_PREFIX, openLVWallet } from '../services/openLVWallet'
+ 
+ /**
+  * Disconnects a dApp: tells the relay then drops the session from the slice, returning whether it
+@@ -19,9 +20,13 @@ export const useDisconnectSession = () => {
+     async (topic: string, peerName?: string): Promise<boolean> => {
+       setBusyTopic(topic)
+       try {
+-        const wk = await getWalletKit()
+-        await wk.disconnectSession({ topic, reason: getSdkError('USER_DISCONNECTED') })
+-        dispatch(removeSession(topic))
++        if (topic.startsWith(OPENLV_TOPIC_PREFIX)) {
++          await openLVWallet.disconnect(topic)
++        } else {
++          const wk = await getWalletKit()
++          await wk.disconnectSession({ topic, reason: getSdkError('USER_DISCONNECTED') })
++          dispatch(removeSession(topic))
++        }
+         dispatch(showToast({ message: `${peerName ?? 'App'} disconnected`, duration: 2500 }))
+         return true
+       } catch (e) {
+diff --git a/apps/mobile/src/features/WalletConnect/Wallet/hooks/useOpenLVSessions.ts b/apps/mobile/src/features/WalletConnect/Wallet/hooks/useOpenLVSessions.ts
+new file mode 100644
+index 000000000..dd031568d
+--- /dev/null
++++ b/apps/mobile/src/features/WalletConnect/Wallet/hooks/useOpenLVSessions.ts
+@@ -0,0 +1,11 @@
++import { useEffect, useState } from 'react'
++import type { Session } from '@openlv/react-native'
++import { openLVWallet } from '../services/openLVWallet'
++
++export const useOpenLVSessions = (): Session[] => {
++  const [sessions, setSessions] = useState<Session[]>(openLVWallet.getSessions())
++
++  useEffect(() => openLVWallet.onSessionsChange(() => setSessions(openLVWallet.getSessions())), [])
++
++  return sessions
++}
+diff --git a/apps/mobile/src/features/WalletConnect/Wallet/hooks/useWalletConnectScan.ts b/apps/mobile/src/features/WalletConnect/Wallet/hooks/useWalletConnectScan.ts
+index ba39233f4..93f5f0cce 100644
+--- a/apps/mobile/src/features/WalletConnect/Wallet/hooks/useWalletConnectScan.ts
++++ b/apps/mobile/src/features/WalletConnect/Wallet/hooks/useWalletConnectScan.ts
+@@ -6,6 +6,7 @@ import { useCameraPermissionFlow } from '@/src/components/Camera'
+ import { getWalletKit } from '../walletKit'
+ import { getPairErrorMessage, logWalletKitError } from '../utils/errors'
+ import { PAIR_TIMEOUT_MESSAGE, PAIR_TIMEOUT_MS } from '../utils/constants'
++import { isOpenLVUri, openLVWallet } from '../services/openLVWallet'
+ 
+ const UNRECOGNISED_MESSAGE = 'Unrecognised QR code'
+ 
+@@ -108,7 +109,7 @@ export const useWalletConnectScan = ({
+         const wk = await getWalletKit()
+         // WalletKit.pair() can't be aborted, so on timeout we only stop reacting here — the relay
+         // pairing may still complete and surface a proposal later via the global RequestSheetHost.
+-        await wk.pair({ uri })
++        await (isOpenLVUri(uri) ? openLVWallet.connect(uri) : wk.pair({ uri }))
+         if (cancelledRef.current || !mountedRef.current) {
+           return // timed out first or unmounted; the error overlay already shows / nothing to do
+         }
+@@ -135,7 +136,7 @@ export const useWalletConnectScan = ({
+       if (!raw || pairingRef.current || handledRef.current || status !== 'scanning') {
+         return
+       }
+-      if (isPairingUri(raw)) {
++      if (isPairingUri(raw) || isOpenLVUri(raw)) {
+         void startPair(raw)
+         return
+       }
+diff --git a/apps/mobile/src/features/WalletConnect/Wallet/services/openLVWallet.ts b/apps/mobile/src/features/WalletConnect/Wallet/services/openLVWallet.ts
+new file mode 100644
+index 000000000..7016bdfc2
+--- /dev/null
++++ b/apps/mobile/src/features/WalletConnect/Wallet/services/openLVWallet.ts
+@@ -0,0 +1,143 @@
++import type { Session } from '@openlv/react-native'
++
++export const isOpenLVUri = (uri: string): boolean => uri.startsWith('openlv://')
++
++export const OPENLV_TOPIC_PREFIX = 'openlv:'
++
++export const getOpenLVTopic = (session: Session): string =>
++  `${OPENLV_TOPIC_PREFIX}${session.getHandshakeParameters().sessionId}`
++
++export type OpenLVRequest = {
++  id: number
++  topic: string
++  method: string
++  params?: unknown[] | object
++}
++
++export type OpenLVResponse = { id: number } & ({ result: unknown } | { error: { code: number; message: string } })
++
++type RequestHandler = (request: OpenLVRequest) => void
++
++const EIP1193_ERRORS: Record<number, { code: number; message: string }> = {
++  3001: { code: 4100, message: 'Unauthorized' },
++  5000: { code: 4001, message: 'User Rejected Request' },
++  5100: { code: 4901, message: 'Chain Disconnected' },
++  5101: { code: 4200, message: 'Unsupported Method' },
++}
++
++type SessionHandler = () => void
++
++type JsonRpcRequest = { id: number | string | null; method: string; params?: unknown[] | object }
++
++const isRequest = (message: unknown): message is JsonRpcRequest =>
++  typeof message === 'object' &&
++  message !== null &&
++  'id' in message &&
++  'method' in message &&
++  typeof message.method === 'string'
++
++class OpenLVWallet {
++  private sessions: Session[] = []
++  private requestHandler: RequestHandler | undefined
++  private sessionHandlers = new Set<SessionHandler>()
++  private pending = new Map<number, (response: OpenLVResponse) => void>()
++  private lastRequestId = Date.now() * 1000
++
++  public async connect(url: string): Promise<void> {
++    const [{ connectSession, SessionStatus }, { webrtc }] = await Promise.all([
++      import('@openlv/react-native'),
++      import('@openlv/transport/webrtc'),
++    ])
++    const session: Session = await connectSession(url, (message) => this.handleMessage(session, message), [webrtc()])
++
++    await session.connect()
++
++    session.status.subscribe((status) => {
++      if (status === SessionStatus.CONNECTED && !this.sessions.includes(session)) {
++        this.sessions = [...this.sessions, session]
++        this.sessionHandlers.forEach((handler) => handler())
++      }
++
++      if (status === SessionStatus.DISCONNECTED) {
++        this.removeSession(session)
++      }
++    })
++  }
++
++  private async handleMessage(session: Session, message: unknown): Promise<object> {
++    const handler = this.requestHandler
++    if (!handler || !isRequest(message)) {
++      throw new Error('Unsupported request')
++    }
++
++    this.lastRequestId += 1
++    const id = this.lastRequestId
++    const response = await new Promise<OpenLVResponse>((resolve) => {
++      this.pending.set(id, resolve)
++      handler({ id, topic: getOpenLVTopic(session), method: message.method, params: message.params })
++    })
++
++    if ('error' in response) {
++      return { jsonrpc: '2.0', id: message.id, error: EIP1193_ERRORS[response.error.code] ?? response.error }
++    }
++    return { jsonrpc: '2.0', id: message.id, result: response.result }
++  }
++
++  public respond(response: OpenLVResponse) {
++    this.pending.get(response.id)?.(response)
++    this.pending.delete(response.id)
++  }
++
++  private removeSession(session: Session) {
++    if (!this.sessions.includes(session)) {
++      return
++    }
++
++    this.sessions = this.sessions.filter((item) => item !== session)
++    this.sessionHandlers.forEach((handler) => handler())
++  }
++
++  public async disconnect(topic: string) {
++    const session = this.sessions.find((item) => getOpenLVTopic(item) === topic)
++
++    if (!session) {
++      return
++    }
++
++    await session.close()
++    this.removeSession(session)
++  }
++
++  public getSessions(): Session[] {
++    return this.sessions
++  }
++
++  public onSessionsChange(handler: SessionHandler) {
++    this.sessionHandlers.add(handler)
++
++    return () => {
++      this.sessionHandlers.delete(handler)
++    }
++  }
++
++  public updateSessions(chainId: string, safeAddress: string) {
++    this.sessions.forEach((session) => {
++      session.send({ jsonrpc: '2.0', method: 'accountsChanged', params: [[safeAddress]] }).catch(() => undefined)
++      session
++        .send({ jsonrpc: '2.0', method: 'chainChanged', params: [`0x${Number(chainId).toString(16)}`] })
++        .catch(() => undefined)
++    })
++  }
++
++  public onRequest(handler: RequestHandler) {
++    this.requestHandler = handler
++
++    return () => {
++      if (this.requestHandler === handler) {
++        this.requestHandler = undefined
++      }
++    }
++  }
++}
++
++export const openLVWallet = new OpenLVWallet()
+diff --git a/apps/mobile/src/features/WalletConnect/Wallet/store/walletKitListeners.ts b/apps/mobile/src/features/WalletConnect/Wallet/store/walletKitListeners.ts
+index 6487401a2..7d5f93815 100644
+--- a/apps/mobile/src/features/WalletConnect/Wallet/store/walletKitListeners.ts
++++ b/apps/mobile/src/features/WalletConnect/Wallet/store/walletKitListeners.ts
+@@ -1,5 +1,5 @@
+ import { isAnyOf } from '@reduxjs/toolkit'
+-import { formatJsonRpcError, formatJsonRpcResult } from '@walletconnect/jsonrpc-utils'
++import { formatJsonRpcError, formatJsonRpcResult, type JsonRpcResponse } from '@walletconnect/jsonrpc-utils'
+ import { getSdkError } from '@walletconnect/utils'
+ import { cgwApi } from '@safe-global/store/gateway/AUTO_GENERATED/transactions'
+ import { stripEip155Prefix } from '@safe-global/utils/features/walletconnect/utils'
+@@ -11,6 +11,7 @@ import { selectSafeSigners } from '@/src/store/signersSlice'
+ import { showToast } from '@/src/store/toastSlice'
+ import { getWalletKit } from '../walletKit'
+ import { logWalletKitError } from '../utils/errors'
++import { OPENLV_TOPIC_PREFIX, openLVWallet } from '../services/openLVWallet'
+ import { routeSessionRequest, isDeferredResponse, NO_SIGNER_ERROR_CODE } from '../services/methodRouter'
+ import { REJECTED_SIGNING_METHODS } from '../services/constants'
+ import { makeSwitchActiveChainByCaip2, makeGetCallsStatus, navigateToCallsStatus } from './sessionRequestActions'
+@@ -41,14 +42,19 @@ const safeTxHashOf = (action: { meta: { arg: { originalArgs: unknown } } }) =>
+   (action.meta.arg.originalArgs as { proposeTransactionDto?: { safeTxHash?: string } }).proposeTransactionDto
+     ?.safeTxHash
+ 
++const respondSessionRequest = async (topic: string, response: JsonRpcResponse) => {
++  if (topic.startsWith(OPENLV_TOPIC_PREFIX)) {
++    openLVWallet.respond(response)
++    return
++  }
++  const walletKit = await getWalletKit()
++  await walletKit.respondSessionRequest({ topic, response })
++}
++
+ // Errors swallowed: a stale topic (after a relay reconnect) is benign and must not block callers.
+ const respondRejected = async (topic: string, id: number) => {
+   try {
+-    const walletKit = await getWalletKit()
+-    await walletKit.respondSessionRequest({
+-      topic,
+-      response: formatJsonRpcError(id, getSdkError('USER_REJECTED')),
+-    })
++    await respondSessionRequest(topic, formatJsonRpcError(id, getSdkError('USER_REJECTED')))
+   } catch (e) {
+     logWalletKitError('respondSessionRequest USER_REJECTED failed', e)
+   }
+@@ -85,11 +91,7 @@ export const walletKitListeners = (startListening: AppStartListening) => {
+       // EIP-5792 wants a { id } bundle envelope; eth_sendTransaction wants the bare hash.
+       const result = outstanding.method === 'wallet_sendCalls' ? { id: safeTxHash } : safeTxHash
+       try {
+-        const walletKit = await getWalletKit()
+-        await walletKit.respondSessionRequest({
+-          topic: outstanding.topic,
+-          response: formatJsonRpcResult(outstanding.id, result),
+-        })
++        await respondSessionRequest(outstanding.topic, formatJsonRpcResult(outstanding.id, result))
+       } catch (e) {
+         logWalletKitError('respondSessionRequest after propose failed', e)
+       }
+@@ -205,8 +207,7 @@ export const walletKitListeners = (startListening: AppStartListening) => {
+       }
+ 
+       try {
+-        const walletKit = await getWalletKit()
+-        await walletKit.respondSessionRequest({ topic: request.topic, response })
++        await respondSessionRequest(request.topic, response)
+       } catch (e) {
+         logWalletKitError('respondSessionRequest failed', e)
+       }

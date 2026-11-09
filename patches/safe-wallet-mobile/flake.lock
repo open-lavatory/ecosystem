@@ -39,11 +39,11 @@
     "upstream": {
       "flake": false,
       "locked": {
-        "lastModified": 1793192548,
-        "narHash": "sha256-O5H36LY99I1swqhKn+QJsUWxG0v0okM+oLvnVkCaqMs=",
+        "lastModified": 1793698810,
+        "narHash": "sha256-2x9KTSNRV91ZpN9vnxn9eOnBWCR94FXS5txwDc4gO1I=",
         "owner": "safe-global",
         "repo": "safe-wallet-monorepo",
-        "rev": "9437a54b3e626aac5ce34782f4868e6b7238e5eb",
+        "rev": "35070b7353c03fe1007f04b48f58cd0ca2afe00e",
         "type": "github"
       },
       "original": {
