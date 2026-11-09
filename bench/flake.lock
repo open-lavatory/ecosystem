@@ -1,0 +1,62 @@
+{
+  "nodes": {
+    "nixpkgs": {
+      "locked": {
+        "lastModified": 1793110635,
+        "narHash": "sha256-dhoW6VgFWlaodSY5jrBn+CF2FLmaUvDVgM7+C7T2+NM=",
+        "owner": "NixOS",
+        "repo": "nixpkgs",
+        "rev": "31ecbaca1bdefa45dffc409f0250bd8039ea0010",
+        "type": "github"
+      },
+      "original": {
+        "owner": "NixOS",
+        "ref": "nixos-unstable",
+        "repo": "nixpkgs",
+        "type": "github"
+      }
+    },
+    "open-lavatory": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1794079642,
+        "narHash": "sha256-Mdra7Ys17/wO/exB+5H5X6uXe1sv3NlZbLtfHUsIjC4=",
+        "owner": "open-lavatory",
+        "repo": "open-lavatory",
+        "rev": "b4770c9958fe2a30ea276285bf9777ad39545439",
+        "type": "github"
+      },
+      "original": {
+        "owner": "open-lavatory",
+        "repo": "open-lavatory",
+        "type": "github"
+      }
+    },
+    "root": {
+      "inputs": {
+        "nixpkgs": [
+          "root",
+          "nixpkgs"
+        ],
+        "open-lavatory": "open-lavatory",
+        "root": "root_2"
+      }
+    },
+    "root_2": {
+      "inputs": {
+        "nixpkgs": "nixpkgs"
+      },
+      "locked": {
+        "path": "..",
+        "type": "path"
+      },
+      "original": {
+        "path": "..",
+        "type": "path"
+      },
+      "parent": []
+    }
+  },
+  "root": "root",
+  "version": 7
+}

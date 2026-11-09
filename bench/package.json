@@ -1,0 +1,27 @@
+{
+  "name": "@openlv/bench",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@10.34.7",
+  "scripts": {
+    "bench": "node runner/cli.ts",
+    "schema": "node runner/schema.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@openlv/core": "0.3.0",
+    "@openlv/session": "0.3.1",
+    "@openlv/transport": "0.3.0",
+    "@playwright/test": "1.65.0",
+    "@types/node": "26.6.6",
+    "esbuild": "0.28.2",
+    "typescript": "7.0.2",
+    "viem": "2.57.16",
+    "zod": "4.6.7"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "esbuild"
+    ]
+  }
+}

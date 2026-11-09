@@ -1,0 +1,40 @@
+{
+  "$schema": "./descriptor.schema.json",
+  "name": "openlv try-it-out demo",
+  "source": {
+    "input": "open-lavatory",
+    "build": [
+      "pnpm install --frozen-lockfile",
+      "pnpm build",
+      "pnpm --dir docs build"
+    ],
+    "serve": "pnpm --dir docs exec vocs preview --host 127.0.0.1 --port {port}"
+  },
+  "chains": [1, 11155111],
+  "rpc": {
+    "https://ethereum.reth.rs/rpc": 1,
+    "https://11155111.rpc.thirdweb.com/**": 11155111
+  },
+  "open": "/try",
+  "connect": [
+    { "click": "role=button[name='Open Lavatory']" },
+    { "click": "role=button[name='Generate QR']" },
+    { "click": "role=button[name='Copy Connection URL']" },
+    { "url": "clipboard" }
+  ],
+  "connected": [{ "visible": "role=button[name='Disconnect']" }],
+  "disconnect": {
+    "steps": [{ "click": "role=button[name='Disconnect']" }],
+    "disconnected": [{ "visible": "role=button[name='Open Lavatory']" }]
+  },
+  "actions": [
+    {
+      "name": "sign",
+      "features": ["personal_sign"],
+      "steps": [{ "click": "role=button[name='Sign']" }],
+      "request": { "method": "personal_sign", "message": "Hello, world!" },
+      "approved": [{ "visible": "text=\"Valid signature\"" }],
+      "rejected": [{ "visible": "text=Cancelled or failed" }]
+    }
+  ]
+}

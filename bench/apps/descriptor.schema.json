@@ -1,0 +1,788 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "$schema": {
+      "type": "string"
+    },
+    "name": {
+      "type": "string"
+    },
+    "source": {
+      "anyOf": [
+        {
+          "type": "object",
+          "properties": {
+            "url": {
+              "type": "string",
+              "format": "uri",
+              "description": "A live site; nothing is built"
+            }
+          },
+          "required": [
+            "url"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "input": {
+              "type": "string",
+              "const": "open-lavatory",
+              "description": "A flake input of bench/flake.nix"
+            },
+            "build": {
+              "minItems": 1,
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "Shell commands run once per input revision"
+            },
+            "serve": {
+              "type": "string",
+              "format": "includes",
+              "pattern": "\\{port\\}",
+              "description": "Shell command that serves the build on {port}"
+            }
+          },
+          "required": [
+            "input",
+            "build",
+            "serve"
+          ],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "chains": {
+      "minItems": 1,
+      "type": "array",
+      "items": {
+        "type": "integer",
+        "exclusiveMinimum": 0,
+        "maximum": 9007199254740991
+      },
+      "description": "Chains the app knows; the test wallet starts on the first"
+    },
+    "rpc": {
+      "description": "URL globs of the app's RPC, routed to the local chain with that id",
+      "type": "object",
+      "propertyNames": {
+        "type": "string"
+      },
+      "additionalProperties": {
+        "type": "integer",
+        "exclusiveMinimum": 0,
+        "maximum": 9007199254740991
+      }
+    },
+    "open": {
+      "type": "string",
+      "format": "starts_with",
+      "pattern": "^\\/.*"
+    },
+    "connect": {
+      "minItems": 1,
+      "type": "array",
+      "items": {
+        "anyOf": [
+          {
+            "type": "object",
+            "properties": {
+              "goto": {
+                "type": "string",
+                "format": "starts_with",
+                "pattern": "^\\/.*",
+                "description": "Path on the app origin"
+              }
+            },
+            "required": [
+              "goto"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "click": {
+                "type": "string",
+                "minLength": 1,
+                "description": "Playwright selector; {account0} and {account1} expand to the test wallet's addresses"
+              }
+            },
+            "required": [
+              "click"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "visible": {
+                "type": "string",
+                "minLength": 1,
+                "description": "Wait until this selector is visible"
+              }
+            },
+            "required": [
+              "visible"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "hidden": {
+                "type": "string",
+                "minLength": 1,
+                "description": "Wait until this selector is hidden or gone"
+              }
+            },
+            "required": [
+              "hidden"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "url": {
+                "type": "string",
+                "const": "clipboard",
+                "description": "Read the openlv connection URL and let the test wallet join it"
+              }
+            },
+            "required": [
+              "url"
+            ],
+            "additionalProperties": false
+          }
+        ]
+      }
+    },
+    "connected": {
+      "minItems": 1,
+      "type": "array",
+      "items": {
+        "anyOf": [
+          {
+            "type": "object",
+            "properties": {
+              "goto": {
+                "type": "string",
+                "format": "starts_with",
+                "pattern": "^\\/.*",
+                "description": "Path on the app origin"
+              }
+            },
+            "required": [
+              "goto"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "click": {
+                "type": "string",
+                "minLength": 1,
+                "description": "Playwright selector; {account0} and {account1} expand to the test wallet's addresses"
+              }
+            },
+            "required": [
+              "click"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "visible": {
+                "type": "string",
+                "minLength": 1,
+                "description": "Wait until this selector is visible"
+              }
+            },
+            "required": [
+              "visible"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "hidden": {
+                "type": "string",
+                "minLength": 1,
+                "description": "Wait until this selector is hidden or gone"
+              }
+            },
+            "required": [
+              "hidden"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "url": {
+                "type": "string",
+                "const": "clipboard",
+                "description": "Read the openlv connection URL and let the test wallet join it"
+              }
+            },
+            "required": [
+              "url"
+            ],
+            "additionalProperties": false
+          }
+        ]
+      }
+    },
+    "disconnect": {
+      "type": "object",
+      "properties": {
+        "steps": {
+          "minItems": 1,
+          "type": "array",
+          "items": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "goto": {
+                    "type": "string",
+                    "format": "starts_with",
+                    "pattern": "^\\/.*",
+                    "description": "Path on the app origin"
+                  }
+                },
+                "required": [
+                  "goto"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "click": {
+                    "type": "string",
+                    "minLength": 1,
+                    "description": "Playwright selector; {account0} and {account1} expand to the test wallet's addresses"
+                  }
+                },
+                "required": [
+                  "click"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "visible": {
+                    "type": "string",
+                    "minLength": 1,
+                    "description": "Wait until this selector is visible"
+                  }
+                },
+                "required": [
+                  "visible"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "hidden": {
+                    "type": "string",
+                    "minLength": 1,
+                    "description": "Wait until this selector is hidden or gone"
+                  }
+                },
+                "required": [
+                  "hidden"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "url": {
+                    "type": "string",
+                    "const": "clipboard",
+                    "description": "Read the openlv connection URL and let the test wallet join it"
+                  }
+                },
+                "required": [
+                  "url"
+                ],
+                "additionalProperties": false
+              }
+            ]
+          }
+        },
+        "disconnected": {
+          "minItems": 1,
+          "type": "array",
+          "items": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "goto": {
+                    "type": "string",
+                    "format": "starts_with",
+                    "pattern": "^\\/.*",
+                    "description": "Path on the app origin"
+                  }
+                },
+                "required": [
+                  "goto"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "click": {
+                    "type": "string",
+                    "minLength": 1,
+                    "description": "Playwright selector; {account0} and {account1} expand to the test wallet's addresses"
+                  }
+                },
+                "required": [
+                  "click"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "visible": {
+                    "type": "string",
+                    "minLength": 1,
+                    "description": "Wait until this selector is visible"
+                  }
+                },
+                "required": [
+                  "visible"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "hidden": {
+                    "type": "string",
+                    "minLength": 1,
+                    "description": "Wait until this selector is hidden or gone"
+                  }
+                },
+                "required": [
+                  "hidden"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "url": {
+                    "type": "string",
+                    "const": "clipboard",
+                    "description": "Read the openlv connection URL and let the test wallet join it"
+                  }
+                },
+                "required": [
+                  "url"
+                ],
+                "additionalProperties": false
+              }
+            ]
+          }
+        }
+      },
+      "required": [
+        "steps",
+        "disconnected"
+      ],
+      "additionalProperties": false
+    },
+    "actions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "pattern": "^[a-z0-9-]+$"
+          },
+          "open": {
+            "description": "Path to connect on for this action; defaults to the app's open",
+            "type": "string",
+            "format": "starts_with",
+            "pattern": "^\\/.*"
+          },
+          "features": {
+            "minItems": 1,
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "multiple_accounts",
+                "personal_sign",
+                "typed_data",
+                "permit",
+                "transaction",
+                "chain_switch"
+              ]
+            }
+          },
+          "steps": {
+            "minItems": 1,
+            "type": "array",
+            "items": {
+              "anyOf": [
+                {
+                  "type": "object",
+                  "properties": {
+                    "goto": {
+                      "type": "string",
+                      "format": "starts_with",
+                      "pattern": "^\\/.*",
+                      "description": "Path on the app origin"
+                    }
+                  },
+                  "required": [
+                    "goto"
+                  ],
+                  "additionalProperties": false
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "click": {
+                      "type": "string",
+                      "minLength": 1,
+                      "description": "Playwright selector; {account0} and {account1} expand to the test wallet's addresses"
+                    }
+                  },
+                  "required": [
+                    "click"
+                  ],
+                  "additionalProperties": false
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "visible": {
+                      "type": "string",
+                      "minLength": 1,
+                      "description": "Wait until this selector is visible"
+                    }
+                  },
+                  "required": [
+                    "visible"
+                  ],
+                  "additionalProperties": false
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "hidden": {
+                      "type": "string",
+                      "minLength": 1,
+                      "description": "Wait until this selector is hidden or gone"
+                    }
+                  },
+                  "required": [
+                    "hidden"
+                  ],
+                  "additionalProperties": false
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "url": {
+                      "type": "string",
+                      "const": "clipboard",
+                      "description": "Read the openlv connection URL and let the test wallet join it"
+                    }
+                  },
+                  "required": [
+                    "url"
+                  ],
+                  "additionalProperties": false
+                }
+              ]
+            },
+            "description": "Steps that make the app send the request"
+          },
+          "request": {
+            "oneOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "method": {
+                    "type": "string",
+                    "const": "eth_accounts"
+                  }
+                },
+                "required": [
+                  "method"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "method": {
+                    "type": "string",
+                    "const": "personal_sign"
+                  },
+                  "message": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "method",
+                  "message"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "method": {
+                    "type": "string",
+                    "const": "eth_signTypedData_v4"
+                  },
+                  "primaryType": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "method",
+                  "primaryType"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "method": {
+                    "type": "string",
+                    "const": "eth_sendTransaction"
+                  }
+                },
+                "required": [
+                  "method"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "method": {
+                    "type": "string",
+                    "const": "wallet_switchEthereumChain"
+                  },
+                  "chainId": {
+                    "type": "integer",
+                    "exclusiveMinimum": 0,
+                    "maximum": 9007199254740991
+                  }
+                },
+                "required": [
+                  "method",
+                  "chainId"
+                ],
+                "additionalProperties": false
+              }
+            ],
+            "description": "The request the test wallet must receive"
+          },
+          "approved": {
+            "minItems": 1,
+            "type": "array",
+            "items": {
+              "anyOf": [
+                {
+                  "type": "object",
+                  "properties": {
+                    "goto": {
+                      "type": "string",
+                      "format": "starts_with",
+                      "pattern": "^\\/.*",
+                      "description": "Path on the app origin"
+                    }
+                  },
+                  "required": [
+                    "goto"
+                  ],
+                  "additionalProperties": false
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "click": {
+                      "type": "string",
+                      "minLength": 1,
+                      "description": "Playwright selector; {account0} and {account1} expand to the test wallet's addresses"
+                    }
+                  },
+                  "required": [
+                    "click"
+                  ],
+                  "additionalProperties": false
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "visible": {
+                      "type": "string",
+                      "minLength": 1,
+                      "description": "Wait until this selector is visible"
+                    }
+                  },
+                  "required": [
+                    "visible"
+                  ],
+                  "additionalProperties": false
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "hidden": {
+                      "type": "string",
+                      "minLength": 1,
+                      "description": "Wait until this selector is hidden or gone"
+                    }
+                  },
+                  "required": [
+                    "hidden"
+                  ],
+                  "additionalProperties": false
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "url": {
+                      "type": "string",
+                      "const": "clipboard",
+                      "description": "Read the openlv connection URL and let the test wallet join it"
+                    }
+                  },
+                  "required": [
+                    "url"
+                  ],
+                  "additionalProperties": false
+                }
+              ]
+            },
+            "description": "Steps that must pass after the wallet approves"
+          },
+          "rejected": {
+            "description": "Steps that must pass after the wallet rejects with 4001",
+            "minItems": 1,
+            "type": "array",
+            "items": {
+              "anyOf": [
+                {
+                  "type": "object",
+                  "properties": {
+                    "goto": {
+                      "type": "string",
+                      "format": "starts_with",
+                      "pattern": "^\\/.*",
+                      "description": "Path on the app origin"
+                    }
+                  },
+                  "required": [
+                    "goto"
+                  ],
+                  "additionalProperties": false
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "click": {
+                      "type": "string",
+                      "minLength": 1,
+                      "description": "Playwright selector; {account0} and {account1} expand to the test wallet's addresses"
+                    }
+                  },
+                  "required": [
+                    "click"
+                  ],
+                  "additionalProperties": false
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "visible": {
+                      "type": "string",
+                      "minLength": 1,
+                      "description": "Wait until this selector is visible"
+                    }
+                  },
+                  "required": [
+                    "visible"
+                  ],
+                  "additionalProperties": false
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "hidden": {
+                      "type": "string",
+                      "minLength": 1,
+                      "description": "Wait until this selector is hidden or gone"
+                    }
+                  },
+                  "required": [
+                    "hidden"
+                  ],
+                  "additionalProperties": false
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "url": {
+                      "type": "string",
+                      "const": "clipboard",
+                      "description": "Read the openlv connection URL and let the test wallet join it"
+                    }
+                  },
+                  "required": [
+                    "url"
+                  ],
+                  "additionalProperties": false
+                }
+              ]
+            }
+          }
+        },
+        "required": [
+          "name",
+          "features",
+          "steps",
+          "request",
+          "approved"
+        ],
+        "additionalProperties": false
+      }
+    }
+  },
+  "required": [
+    "name",
+    "source",
+    "chains",
+    "open",
+    "connect",
+    "connected",
+    "actions"
+  ],
+  "additionalProperties": false
+}
