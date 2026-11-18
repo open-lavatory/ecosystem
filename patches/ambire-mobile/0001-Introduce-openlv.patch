@@ -10,9 +10,9 @@ Subject: [PATCH] Introduce openlv
  .../components/ManageApp/ManageApp.tsx        |  13 +-
  .../screens/QrReaderScreen/QrReaderScreen.tsx |   6 +-
  .../walletConnectContext.tsx                  |  15 +-
- .../wallet-connect/services/openlvService.ts  | 261 ++++++++++++++++++
+ .../wallet-connect/services/openlvService.ts  | 266 ++++++++++++++++++
  .../services/walletConnectService.ts          |  15 +
- 8 files changed, 309 insertions(+), 10 deletions(-)
+ 8 files changed, 314 insertions(+), 10 deletions(-)
  create mode 100644 src/mobile/modules/wallet-connect/services/openlvService.ts
 
 diff --git a/android/app/src/main/AndroidManifest.xml b/android/app/src/main/AndroidManifest.xml
@@ -194,10 +194,10 @@ index f33cfe6..6702264 100644
  }
 diff --git a/src/mobile/modules/wallet-connect/services/openlvService.ts b/src/mobile/modules/wallet-connect/services/openlvService.ts
 new file mode 100644
-index 0000000..2032099
+index 0000000..5ceb173
 --- /dev/null
 +++ b/src/mobile/modules/wallet-connect/services/openlvService.ts
-@@ -0,0 +1,261 @@
+@@ -0,0 +1,266 @@
 +import { connectSession, type Session, SessionStatus } from '@openlv/react-native'
 +
 +import { ToastOptions } from '@common/contexts/toastContext/toastContext'
@@ -206,7 +206,9 @@ index 0000000..2032099
 +type DispatchFn = (action: MethodAction | Action, windowId?: number, raw?: boolean) => void
 +type AddToastFn = (text: string, options?: ToastOptions) => void
 +
-+type ProviderResponse = { result: unknown } | { error: unknown }
++type ProviderResponse =
++  | { result: unknown }
++  | { error: { code: number; message: string; data?: unknown } }
 +
 +type OpenlvSession = {
 +  session: Session
@@ -434,9 +436,12 @@ index 0000000..2032099
 +export const respondToOpenlvRequest = (topic: string, id: number, response: ProviderResponse) => {
 +  const pendingRequests = sessionsByTopic.get(topic)?.pendingRequests
 +
-+  pendingRequests?.get(id)?.(
-+    'error' in response ? { error: response.error } : { result: response.result ?? null }
-+  )
++  if ('error' in response) {
++    const { code, message, data } = response.error
++    pendingRequests?.get(id)?.({ error: { code, message, ...(data !== undefined && { data }) } })
++  } else {
++    pendingRequests?.get(id)?.({ result: response.result ?? null })
++  }
 +  pendingRequests?.delete(id)
 +}
 +
